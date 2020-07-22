@@ -16,6 +16,12 @@
  */
 package org.apache.catalina.startup;
 
+import org.apache.catalina.security.SecurityClassLoad;
+import org.apache.catalina.startup.ClassLoaderFactory.Repository;
+import org.apache.catalina.startup.ClassLoaderFactory.RepositoryType;
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -26,12 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.catalina.security.SecurityClassLoad;
-import org.apache.catalina.startup.ClassLoaderFactory.Repository;
-import org.apache.catalina.startup.ClassLoaderFactory.RepositoryType;
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
 
 /**
  * Bootstrap loader for Catalina.  This application constructs a class loader
@@ -427,6 +427,10 @@ public final class Bootstrap {
 
 
     /**
+     * 启动参数：
+     * -Duser.language=en
+     * -Dcatalina.home=.\output\build
+     *
      * Main method and entry point when starting Tomcat via the provided
      * scripts.
      *
