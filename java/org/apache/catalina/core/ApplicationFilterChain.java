@@ -27,6 +27,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -228,7 +229,7 @@ public final class ApplicationFilterChain implements FilterChain {
                                            args,
                                            principal);
             } else {
-                servlet.service(request, response);
+                servlet.service(request, response);/** 调用{@link HttpServlet#service}，在其中调用get/post等方法**/
             }
         } catch (IOException | ServletException | RuntimeException e) {
             throw e;

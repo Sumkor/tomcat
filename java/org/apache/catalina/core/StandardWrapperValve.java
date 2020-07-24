@@ -129,7 +129,7 @@ final class StandardWrapperValve
             unavailable = true;
         }
 
-        // Allocate a servlet instance to process this request
+        // Allocate a servlet instance to process this request// 为请求生成Servlet实例
         try {
             if (!unavailable) {
                 servlet = wrapper.allocate();
@@ -169,7 +169,7 @@ final class StandardWrapperValve
         request.setAttribute(Globals.DISPATCHER_TYPE_ATTR,dispatcherType);
         request.setAttribute(Globals.DISPATCHER_REQUEST_PATH_ATTR,
                 requestPathMB);
-        // Create the filter chain for this request
+        // Create the filter chain for this request// 为请求生成过滤器
         ApplicationFilterChain filterChain =
                 ApplicationFilterFactory.createFilterChain(request, wrapper, servlet);
 
@@ -198,7 +198,7 @@ final class StandardWrapperValve
                     if (request.isAsyncDispatching()) {
                         request.getAsyncContextInternal().doInternalDispatch();
                     } else {
-                        filterChain.doFilter
+                        filterChain.doFilter// 执行过滤器
                             (request.getRequest(), response.getResponse());
                     }
                 }

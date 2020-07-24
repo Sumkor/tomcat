@@ -427,9 +427,18 @@ public final class Bootstrap {
 
 
     /**
-     * 启动参数：
-     * -Duser.language=en
-     * -Dcatalina.home=.\output\build
+     *
+     首先使用ant构建项目
+
+     启动参数：
+        -Duser.language=en
+        -Dcatalina.home=.\output\build
+
+     或者
+        -Dcatalina.home=./
+        -Dcatalina.base=./
+        -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+        -Djava.util.logging.config.file=./conf/logging.properties
      *
      * Main method and entry point when starting Tomcat via the provided
      * scripts.

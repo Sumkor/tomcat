@@ -41,7 +41,29 @@ Wrapper {
 }
 ```
 
+## Tomcat中的管道
 
+org.apache.catalina.Pipeline
+org.apache.catalina.core.StandardWrapper
 
+## 架构图
+
+![tomcat架构](./tomcat架构.png)
+
+## 请求
+
+浏览器：
+ 1. 构造数据，根据HTTP协议
+ 2. 建立TCP连接（Socket）
+ 3. 发送数据
+ 
+Tomcat：
+ 1. 接收数据（从Socket中取数据）
+ 
+ 
+org.apache.catalina.connector.Connector.getProtocol
+
+创建协议
+org.apache.coyote.ProtocolHandler.create
 
 
