@@ -20,31 +20,45 @@ org.apache.catalina.Container 的四个实现接口：
  - org.apache.catalina.Host 虚拟主机，其中包含多个Context.
  - org.apache.catalina.Engine 引擎，由多个Host组成.
 
-可以在conf\server.xml中定义
+对于每个容器，有个公共的组件管道org.apache.catalina.Pipeline  
+管道之下还有阀门org.apache.catalina.Valve    
+
+容器和阀门均可在conf\server.xml中定义
 
 ```code
 
 Engine {
+    Pipeline pipeline;// 管道
     List<Host> hosts;// 主机的集合
 }
 
 Host {
+    Pipeline pipeline;// 管道
     List<Context> contexts;// 应用的集合
 }
 
 Context {
+    Pipeline pipeline;// 管道
     List<Wrapper> wrappers;// Servlet类的类型
 }
 
 Wrapper {
+    Pipeline pipeline;// 管道
     List<Servlet> servlet;// Servlet类的实例
+}
+
+Pipeline {
+    List<Valve> valves;// 阀门
 }
 ```
 
-## Tomcat中的管道
+一个请求Request进来，经过 Engine->Host->Context->Wrapper->Servlet 路径，依次通过了各个管道的Valve之后，
+最终调动Servlet.doGet方法
 
-org.apache.catalina.Pipeline
-org.apache.catalina.core.StandardWrapper
+想知道Tomcat如何构建Servlet实例并调用它的doGet方法，应该从Wrapper的最后一个Valve入手。
+
+org.apache.catalina.core.StandardWrapper 构造函数中，创建了  
+org.apache.catalina.core.StandardWrapperValve#invoke
 
 ## 架构图
 

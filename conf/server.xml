@@ -165,6 +165,9 @@
                prefix="localhost_access_log" suffix=".txt"
                pattern="%h %l %u %t &quot;%r&quot; %s %b" />
 
+        <!--自定义阀门-->
+        <Valve className="com.sumkor.valves.MyValve"/>
+
       </Host>
     </Engine>
   </Service>

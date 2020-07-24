@@ -1,1 +1,2 @@
-Servlet 3.0 demo，用于调试 Tomcat 源码。使用 Maven 构建后，将 war 包放置于 Tomcat webapps 目录下即可。 
+Servlet 3.0 demo，用于调试 Tomcat 源码。  
+使用 Maven 构建后，将 war 包放置于 Tomcat webapps 目录下即可。 
