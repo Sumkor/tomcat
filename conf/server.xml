@@ -149,6 +149,7 @@
                resourceName="UserDatabase"/>
       </Realm>
 
+      <!--加载webapps目录下的web应用，对war包进行解压-->
       <Host name="localhost"  appBase="webapps"
             unpackWARs="true" autoDeploy="true">
 

@@ -421,11 +421,11 @@ public class HostConfig implements LifecycleListener {
         File appBase = host.getAppBaseFile();
         File configBase = host.getConfigBaseFile();
         String[] filteredAppPaths = filterAppPaths(appBase.list());
-        // Deploy XML descriptors from configBase
+        // Deploy XML descriptors from configBase // 描述符部署，在server.xml中配置context标签配置项目地址
         deployDescriptors(configBase, configBase.list());
-        // Deploy WARs
+        // Deploy WARs // war包部署
         deployWARs(appBase, filteredAppPaths);
-        // Deploy expanded folders
+        // Deploy expanded folders // 文件夹部署
         deployDirectories(appBase, filteredAppPaths);
 
     }
@@ -770,7 +770,7 @@ public class HostConfig implements LifecycleListener {
                     continue;
                 }
 
-                results.add(es.submit(new DeployWar(this, cn, war)));
+                results.add(es.submit(new DeployWar(this, cn, war)));// 线程池异步部署
             }
         }
 
