@@ -23,13 +23,13 @@ org.apache.catalina.Container 的四个实现接口：
  - org.apache.catalina.Context 应用，一个应用中有多个Servlet.
  - org.apache.catalina.Wrapper 代表一个Servlet类的类型.
 
-Servlet到底是单例还是多例？  
+> Servlet到底是单例还是多例？  
 https://www.cnblogs.com/softidea/p/7245899.html   
 Servlet并不是单例，只是容器让它只实例化一次，变现出来的是单例的效果而已。  
 在web.xml中声明了几次，即使同一个Servlet，如果声明多次，也会生成多个实例（实测如此）。   
 是否实现SingleThreadModel(已经声明为废弃，官方不建议使用)，如果实现则最多会创建20个实例。
- - 单例：所有访问Servlet的请求共用同一个Servlet实例
- - 多例：每一访问Servlet的请求单独有一个Servlet实例
+> - 单例：所有访问Servlet的请求共用同一个Servlet实例
+> - 多例：每一访问Servlet的请求单独有一个Servlet实例
   
 
 
@@ -73,6 +73,10 @@ Pipeline {
 org.apache.catalina.core.StandardWrapper 构造函数中，创建了  
 org.apache.catalina.core.StandardWrapperValve#invoke
 
+> Servlet和Filter的执行顺序
+> https://blog.csdn.net/weixin_43343423/article/details/91194399
+> org.apache.catalina.core.ApplicationFilterChain#internalDoFilter
+
 ## 架构图
 
 ![tomcat架构](./tomcat架构.png)
@@ -95,11 +99,25 @@ org.apache.catalina.connector.Request 内部真正的实现
 Tomcat：
  1. 接收数据（从Socket中取数据）
  
+IO模型：NIO、BIO(tomcat9不再支持)
  
-org.apache.catalina.connector.Connector#getProtocol
+Connector从Socket中取数据，再根据HTTP协议构造Request对象 
 
-创建协议
-org.apache.coyote.ProtocolHandler#create
+创建协议  
+org.apache.catalina.connector.Connector#Connector(java.lang.String)  
+org.apache.coyote.ProtocolHandler#create  
+
+代表HTTP1.1协议，使用NIO模型  
+org.apache.coyote.http11.Http11NioProtocol 
+ 
+接收Socket  
+org.apache.tomcat.util.net.Acceptor.run
+org.apache.tomcat.util.net.NioEndpoint#serverSocketAccept  
+
+从Socket中读取数据  
+org.apache.tomcat.util.net.NioEndpoint#SocketProcessor
+org.apache.coyote.AbstractProtocol#ConnectionHandler.process
+org.apache.coyote.AbstractProcessorLight#process
 
 
 

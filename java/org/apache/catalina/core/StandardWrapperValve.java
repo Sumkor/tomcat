@@ -169,12 +169,12 @@ final class StandardWrapperValve
         request.setAttribute(Globals.DISPATCHER_TYPE_ATTR,dispatcherType);
         request.setAttribute(Globals.DISPATCHER_REQUEST_PATH_ATTR,
                 requestPathMB);
-        // Create the filter chain for this request// 为请求生成过滤器
+        // Create the filter chain for this request // 为请求生成过滤器链
         ApplicationFilterChain filterChain =
                 ApplicationFilterFactory.createFilterChain(request, wrapper, servlet);
 
         // Call the filter chain for this request
-        // NOTE: This also calls the servlet's service() method
+        // NOTE: This also calls the servlet's service() method // 执行过滤器链，其中也会执行Servlet.service()方法
         Container container = this.container;
         try {
             if ((servlet != null) && (filterChain != null)) {
@@ -198,7 +198,7 @@ final class StandardWrapperValve
                     if (request.isAsyncDispatching()) {
                         request.getAsyncContextInternal().doInternalDispatch();
                     } else {
-                        filterChain.doFilter// 执行过滤器
+                        filterChain.doFilter// 依次执行过滤器链
                             (request.getRequest(), response.getResponse());
                     }
                 }

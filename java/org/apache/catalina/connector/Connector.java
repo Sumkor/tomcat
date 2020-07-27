@@ -84,7 +84,7 @@ public class Connector extends LifecycleMBeanBase  {
             AprStatus.getUseAprConnector();
         ProtocolHandler p = null;
         try {
-            p = ProtocolHandler.create(protocol, apr);
+            p = ProtocolHandler.create(protocol, apr);// 创建协议
         } catch (Exception e) {
             log.error(sm.getString(
                     "coyoteConnector.protocolHandlerInstantiationFailed"), e);

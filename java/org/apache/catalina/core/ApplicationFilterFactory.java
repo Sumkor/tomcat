@@ -76,7 +76,7 @@ public final class ApplicationFilterFactory {
             filterChain = new ApplicationFilterChain();
         }
 
-        filterChain.setServlet(servlet);
+        filterChain.setServlet(servlet);// 添加Servlet
         filterChain.setServletSupportsAsync(wrapper.isAsyncSupported());
 
         // Acquire the filter mappings for this Context
@@ -112,7 +112,7 @@ public final class ApplicationFilterFactory {
                 // FIXME - log configuration problem
                 continue;
             }
-            filterChain.addFilter(filterConfig);
+            filterChain.addFilter(filterConfig);// 添加过滤器
         }
 
         // Add filters that match on servlet name second

@@ -191,7 +191,7 @@ public final class ApplicationFilterChain implements FilterChain {
                     Object[] args = new Object[]{req, res, this};
                     SecurityUtil.doAsPrivilege ("doFilter", filter, classType, args, principal);
                 } else {
-                    filter.doFilter(request, response, this);
+                    filter.doFilter(request, response, this);// 调用下一个过滤器
                 }
             } catch (IOException | ServletException | RuntimeException e) {
                 throw e;
@@ -200,10 +200,10 @@ public final class ApplicationFilterChain implements FilterChain {
                 ExceptionUtils.handleThrowable(e);
                 throw new ServletException(sm.getString("filterChain.filter"), e);
             }
-            return;
+            return;// 当前的filter.doFilter操作执行完毕，从这里返回到上一个过滤器
         }
 
-        // We fell off the end of the chain -- call the servlet instance
+        // We fell off the end of the chain -- call the servlet instance // 最后一个filter.doFilter操作，不符合 pos < n，因此走的是下面的逻辑，调用Servlet.service
         try {
             if (ApplicationDispatcher.WRAP_SAME_OBJECT) {
                 lastServicedRequest.set(request);
