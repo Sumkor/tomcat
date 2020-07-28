@@ -1099,7 +1099,7 @@ public abstract class AbstractEndpoint<S,U> {
             }
             Executor executor = getExecutor();
             if (dispatch && executor != null) {
-                executor.execute(sc);
+                executor.execute(sc);// 在线程池中处理Socket
             } else {
                 sc.run();
             }

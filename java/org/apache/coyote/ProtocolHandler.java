@@ -215,7 +215,7 @@ public interface ProtocolHandler {
             if (apr) {
                 return new org.apache.coyote.http11.Http11AprProtocol();
             } else {
-                return new org.apache.coyote.http11.Http11NioProtocol();
+                return new org.apache.coyote.http11.Http11NioProtocol();// 创建HTTP1.1协议、NIO模型的实例
             }
         } else if ("AJP/1.3".equals(protocol)
                 || (!apr && org.apache.coyote.ajp.AjpNioProtocol.class.getName().equals(protocol))

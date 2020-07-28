@@ -1,6 +1,6 @@
-# Tomcat底层架构
+# 1. Tomcat底层架构
 
-## Tomcat是一个Servlet容器
+## 1.1 Tomcat是一个Servlet容器
 
 ```code
 class Tomcat {
@@ -9,13 +9,13 @@ class Tomcat {
 }
 ```
 
-## Tomcat中如何部署应用
+## 1.2 Tomcat中如何部署应用
 
 部署war包：  
 org.apache.catalina.startup.HostConfig#deployApps
 org.apache.catalina.startup.HostConfig#deployWARs
 
-## Tomcat中的4个容器：
+## 1.3 Tomcat中的4个容器：
 
 org.apache.catalina.Container 的四个实现接口：
  - org.apache.catalina.Engine 引擎，由多个Host组成.
@@ -77,19 +77,19 @@ org.apache.catalina.core.StandardWrapperValve#invoke
 > https://blog.csdn.net/weixin_43343423/article/details/91194399
 > org.apache.catalina.core.ApplicationFilterChain#internalDoFilter
 
-## 架构图
+## 1.4 架构图
 
 ![tomcat架构](./tomcat架构.png)
 
-# Tomcat如何处理请求
+# 2. Tomcat如何处理请求
 
-## HttpServletRequest的实现
+## 2.1 HttpServletRequest的实现
 
 org.apache.catalina.connector.RequestFacade 使用门面模式，实现Servlet规范，暴露给外部使用
 org.apache.catalina.connector.Request 内部真正的实现
   
 
-## 请求
+## 2.2 处理请求
 
 浏览器：
  1. 构造数据，根据HTTP协议
@@ -98,8 +98,8 @@ org.apache.catalina.connector.Request 内部真正的实现
  
 Tomcat：
  1. 接收数据（从Socket中取数据）
- 
-IO模型：NIO、BIO(tomcat9不再支持)
+
+IO模型：NIO、BIO(tomcat9不再支持)  
  
 Connector从Socket中取数据，再根据HTTP协议构造Request对象 
 
@@ -108,16 +108,90 @@ org.apache.catalina.connector.Connector#Connector(java.lang.String)
 org.apache.coyote.ProtocolHandler#create  
 
 代表HTTP1.1协议，使用NIO模型  
-org.apache.coyote.http11.Http11NioProtocol 
+org.apache.coyote.http11.Http11NioProtocol  
  
-接收Socket  
-org.apache.tomcat.util.net.Acceptor.run
+### 2.2.1 启动HTTP服务，绑定端口 
+
+org.apache.catalina.startup.Bootstrap#load  
+org.apache.catalina.startup.Catalina#load  
+org.apache.catalina.util.LifecycleBase#init   
+org.apache.catalina.core.StandardServer#initInternal  
+org.apache.catalina.connector.Connector#initInternal  
+org.apache.coyote.AbstractProtocol#init  
+org.apache.tomcat.util.net.AbstractEndpoint#init  
+org.apache.tomcat.util.net.NioEndpoint#bind   
+
+绑定8080端口  
+org.apache.tomcat.util.net.NioEndpoint#initServerSocket   
+```java
+ServerSocketChannel serverSock = ServerSocketChannel.open();
+SocketProperties socketProperties.setProperties(serverSock.socket());
+InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset());
+serverSock.socket().bind(addr,getAcceptCount());
+```
+
+开启Selector  
+org.apache.tomcat.util.net.NioSelectorPool#getSharedSelector  
+```java
+Selector sharedSelector = Selector.open();
+```
+
+### 2.2.2 启动HTTP服务，监听请求
+
+org.apache.catalina.startup.Bootstrap#start
+org.apache.catalina.startup.Catalina#start  
+org.apache.catalina.core.StandardServer#startInternal  
+org.apache.coyote.AbstractProtocol#start  
+org.apache.tomcat.util.net.NioEndpoint#startInternal  
+
+其中，启动两个线程    
+org.apache.tomcat.util.net.NioEndpoint#Poller.run  
+org.apache.tomcat.util.net.Acceptor#run  
+
+#### A. 监听Socket
+
+侦听对此套接字的连接并接受它，该方法将阻塞，直到建立连接  
+org.apache.tomcat.util.net.Acceptor#run  
 org.apache.tomcat.util.net.NioEndpoint#serverSocketAccept  
+```java
+SocketChannel socket = serverSock.accept();
+```
 
-从Socket中读取数据  
-org.apache.tomcat.util.net.NioEndpoint#SocketProcessor
-org.apache.coyote.AbstractProtocol#ConnectionHandler.process
-org.apache.coyote.AbstractProcessorLight#process
+#### B. 轮询Channel  
 
+org.apache.tomcat.util.net.NioEndpoint#Poller.run  
+```java
+int keyCount = selector.select(selectorTimeout);
+Iterator<SelectionKey> iterator =
+                    keyCount > 0 ? selector.selectedKeys().iterator() : null;
+```
+
+### 2.2.3 接收请求
+
+建立连接  
+org.apache.tomcat.util.net.Acceptor#run  
+```java
+SocketChannel socket = serverSock.accept();
+```
+
+org.apache.tomcat.util.net.NioEndpoint#setSocketOptions  
+org.apache.tomcat.util.net.NioEndpoint#Poller.register  
+
+读取数据  
+org.apache.tomcat.util.net.NioEndpoint#Poller.run  
+```java
+Iterator<SelectionKey> iterator =
+                    keyCount > 0 ? selector.selectedKeys().iterator() : null;
+```
+org.apache.tomcat.util.net.NioEndpoint#Poller.processKey  
+org.apache.tomcat.util.net.AbstractEndpoint#processSocket  
+
+在线程池中，从Socket中读取数据  
+org.apache.tomcat.util.net.NioEndpoint.SocketProcessor.doRun  
+org.apache.coyote.AbstractProtocol#ConnectionHandler.process  
+org.apache.coyote.AbstractProcessorLight#process  
+
+读取HTTP请求行、请求头  
+org.apache.coyote.http11.Http11Processor#service  
 
 
