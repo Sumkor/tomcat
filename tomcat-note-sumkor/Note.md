@@ -73,7 +73,7 @@ Pipeline {
 org.apache.catalina.core.StandardWrapper 构造函数中，创建了  
 org.apache.catalina.core.StandardWrapperValve#invoke
 
-> Servlet和Filter的执行顺序
+> Servlet和Filter的执行顺序  
 > https://blog.csdn.net/weixin_43343423/article/details/91194399
 > org.apache.catalina.core.ApplicationFilterChain#internalDoFilter
 
@@ -130,11 +130,6 @@ InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset()
 serverSock.socket().bind(addr,getAcceptCount());
 ```
 
-开启Selector  
-org.apache.tomcat.util.net.NioSelectorPool#getSharedSelector  
-```java
-Selector sharedSelector = Selector.open();
-```
 
 ### 2.2.2 启动HTTP服务，监听请求
 
@@ -162,8 +157,7 @@ SocketChannel socket = serverSock.accept();
 org.apache.tomcat.util.net.NioEndpoint#Poller.run  
 ```java
 int keyCount = selector.select(selectorTimeout);
-Iterator<SelectionKey> iterator =
-                    keyCount > 0 ? selector.selectedKeys().iterator() : null;
+Iterator<SelectionKey> iterator = keyCount > 0 ? selector.selectedKeys().iterator() : null;
 ```
 
 ### 2.2.3 接收请求
@@ -177,17 +171,19 @@ SocketChannel socket = serverSock.accept();
 org.apache.tomcat.util.net.NioEndpoint#setSocketOptions  
 org.apache.tomcat.util.net.NioEndpoint#Poller.register  
 
-读取数据  
+处理Socket读写   
 org.apache.tomcat.util.net.NioEndpoint#Poller.run  
 ```java
-Iterator<SelectionKey> iterator =
-                    keyCount > 0 ? selector.selectedKeys().iterator() : null;
+Iterator<SelectionKey> iterator = keyCount > 0 ? selector.selectedKeys().iterator() : null;
+SelectionKey sk = iterator.next();
+NioSocketWrapper socketWrapper = (NioSocketWrapper) sk.attachment();
+processKey(sk, socketWrapper);
 ```
 org.apache.tomcat.util.net.NioEndpoint#Poller.processKey  
 org.apache.tomcat.util.net.AbstractEndpoint#processSocket  
 
 在线程池中，从Socket中读取数据  
-org.apache.tomcat.util.net.NioEndpoint.SocketProcessor.doRun  
+org.apache.tomcat.util.net.NioEndpoint#SocketProcessor.doRun  
 org.apache.coyote.AbstractProtocol#ConnectionHandler.process  
 org.apache.coyote.AbstractProcessorLight#process  
 

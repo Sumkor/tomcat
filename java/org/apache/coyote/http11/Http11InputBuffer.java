@@ -408,7 +408,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                 chr = byteBuffer.get();
                 if (chr == Constants.SP || chr == Constants.HT) {
                     space = true;
-                    request.method().setBytes(byteBuffer.array(), parsingRequestLineStart,
+                    request.method().setBytes(byteBuffer.array(), parsingRequestLineStart,// 设置请求方法
                             pos - parsingRequestLineStart);
                 } else if (!HttpParser.isToken(chr)) {
                     // Avoid unknown protocol triggering an additional error
@@ -501,7 +501,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
             if (parsingRequestLineQPos >= 0) {
                 request.queryString().setBytes(byteBuffer.array(), parsingRequestLineQPos + 1,
                         end - parsingRequestLineQPos - 1);
-                request.requestURI().setBytes(byteBuffer.array(), parsingRequestLineStart,
+                request.requestURI().setBytes(byteBuffer.array(), parsingRequestLineStart,// 设置请求地址
                         parsingRequestLineQPos - parsingRequestLineStart);
             } else {
                 request.requestURI().setBytes(byteBuffer.array(), parsingRequestLineStart,

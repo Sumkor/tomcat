@@ -255,9 +255,9 @@ public class Http11Processor extends AbstractProcessor {
         while (!getErrorState().isError() && keepAlive && !isAsync() && upgradeToken == null &&
                 sendfileState == SendfileState.DONE && !protocol.isPaused()) {
 
-            // Parsing the request header // 解析请求行
+            // Parsing the request header
             try {
-                if (!inputBuffer.parseRequestLine(keptAlive, protocol.getConnectionTimeout(),
+                if (!inputBuffer.parseRequestLine(keptAlive, protocol.getConnectionTimeout(),// 解析请求行
                         protocol.getKeepAliveTimeout())) {
                     if (inputBuffer.getParsingRequestLinePhase() == -1) {
                         return SocketState.UPGRADING;
@@ -370,7 +370,7 @@ public class Http11Processor extends AbstractProcessor {
             if (getErrorState().isIoAllowed()) {
                 try {
                     rp.setStage(org.apache.coyote.Constants.STAGE_SERVICE);
-                    getAdapter().service(request, response);
+                    getAdapter().service(request, response);// 将请求传递给Servlet容器：Engine->Host->Context->Wrapper
                     // Handle when the response was committed before a serious
                     // error occurred.  Throwing a ServletException should both
                     // set the status to 500 and set the errorException.
