@@ -745,7 +745,7 @@ public class StandardWrapper extends ContainerBase
 
         boolean newInstance = false;
 
-        // If not SingleThreadedModel, return the same instance every time
+        // If not SingleThreadedModel, return the same instance every time // 如果没有继承SingleThreadedModel，每次返回同一个Servlet实例
         if (!singleThreadModel) {
             // Load and initialize our instance if necessary
             if (instance == null || !instanceInitialized) {
@@ -1086,7 +1086,7 @@ public class StandardWrapper extends ContainerBase
                 singleThreadModel = true;
             }
 
-            initServlet(servlet);
+            initServlet(servlet);// 构造Servlet实例，若没有继承SingleThreadModel，则只在这里实例化一次，因此为单例
 
             fireContainerEvent("load", this);
 

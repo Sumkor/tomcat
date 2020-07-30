@@ -190,4 +190,18 @@ org.apache.coyote.AbstractProcessorLight#process
 读取HTTP请求行、请求头  
 org.apache.coyote.http11.Http11Processor#service  
 
+将请求传递给Servlet容器：Engine->Host->Context->Wrapper
+org.apache.catalina.connector.CoyoteAdapter.service
+
+到达Wrapper容器的最后一个valve
+org.apache.catalina.core.StandardWrapperValve.invoke
+
+### 2.2.4 生成Servlet
+
+项目启动的时候，生成servlet实例，后续请求都不会生成实例
+org.apache.catalina.startup.HostConfig.DeployDirectory.run
+org.apache.catalina.core.StandardHost.addChild
+org.apache.catalina.core.StandardContext.startInternal
+org.apache.catalina.core.StandardWrapper.load
+org.apache.catalina.core.StandardWrapper.loadServlet
 
