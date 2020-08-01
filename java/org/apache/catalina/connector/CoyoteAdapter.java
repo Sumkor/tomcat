@@ -334,7 +334,7 @@ public class CoyoteAdapter implements Adapter {
         try {
             // Parse and set Catalina and configuration specific
             // request parameters
-            postParseSuccess = postParseRequest(req, request, res, response);
+            postParseSuccess = postParseRequest(req, request, res, response);// 前置处理请求，为请求设置对应的wrapper
             if (postParseSuccess) {
                 //check valves if we support async
                 request.setAsyncSupported(

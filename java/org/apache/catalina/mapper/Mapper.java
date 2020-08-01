@@ -777,7 +777,7 @@ public final class Mapper {
 
         uri.setLimit(-1);
 
-        // Context mapping
+        // Context mapping // 为请求选择对应的Context容器
         ContextList contextList = mappedHost.contextList;
         MappedContext[] contexts = contextList.contexts;
         int pos = find(contexts, uri);
@@ -846,7 +846,7 @@ public final class Mapper {
         mappingData.context = contextVersion.object;
         mappingData.contextSlashCount = contextVersion.slashCount;
 
-        // Wrapper mapping
+        // Wrapper mapping // 为请求选择对应的Wrapper容器
         if (!contextVersion.isPaused()) {
             internalMapWrapper(contextVersion, uri, mappingData);
         }

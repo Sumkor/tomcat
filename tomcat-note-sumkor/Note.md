@@ -30,7 +30,6 @@ Servlet并不是单例，只是容器让它只实例化一次，变现出来的�
 是否实现SingleThreadModel(已经声明为废弃，官方不建议使用)，如果实现则最多会创建20个实例。
 > - 单例：所有访问Servlet的请求共用同一个Servlet实例
 > - 多例：每一访问Servlet的请求单独有一个Servlet实例
-  
 
 
 对于每个容器，有个公共的组件管道org.apache.catalina.Pipeline  
@@ -57,7 +56,7 @@ Context {
 
 Wrapper {
     Pipeline pipeline;// 管道
-    List<Servlet> servlet;// Servlet类的实例
+    List<Servlet> servlet;// Servlet类的实例，单个或多个
 }
 
 Pipeline {
@@ -65,16 +64,21 @@ Pipeline {
 }
 ```
 
+org.apache.catalina.core.StandardWrapper中，存储单个Servlet类型的实例、实例池：  
+org.apache.catalina.core.StandardWrapper#instance  
+org.apache.catalina.core.StandardWrapper#instancePool  
+
 一个请求Request进来，经过 Engine->Host->Context->Wrapper->Servlet 路径，依次通过了各个管道的Valve之后，
-最终调动Servlet.doGet方法
+最终调动Servlet.doGet方法。
 
 想知道Tomcat如何构建Servlet实例并调用它的doGet方法，应该从Wrapper的最后一个Valve入手。
 
-org.apache.catalina.core.StandardWrapper 构造函数中，创建了  
+StandardWrapper构造函数中，创建了StandardWrapperValve。  
+StandardWrapperValve中，根据请求去执行servlet实例的方法:      
 org.apache.catalina.core.StandardWrapperValve#invoke
 
 > Servlet和Filter的执行顺序  
-> https://blog.csdn.net/weixin_43343423/article/details/91194399
+> https://blog.csdn.net/weixin_43343423/article/details/91194399  
 > org.apache.catalina.core.ApplicationFilterChain#internalDoFilter
 
 ## 1.4 架构图
@@ -191,17 +195,56 @@ org.apache.coyote.AbstractProcessorLight#process
 org.apache.coyote.http11.Http11Processor#service  
 
 将请求传递给Servlet容器：Engine->Host->Context->Wrapper
+org.apache.coyote.http11.Http11Processor#service  
 org.apache.catalina.connector.CoyoteAdapter.service
 
-到达Wrapper容器的最后一个valve
+到达Wrapper容器的最后一个valve  
 org.apache.catalina.core.StandardWrapperValve.invoke
 
 ### 2.2.4 生成Servlet
 
 项目启动的时候，生成servlet实例，后续请求都不会生成实例
-org.apache.catalina.startup.HostConfig.DeployDirectory.run
-org.apache.catalina.core.StandardHost.addChild
-org.apache.catalina.core.StandardContext.startInternal
-org.apache.catalina.core.StandardWrapper.load
-org.apache.catalina.core.StandardWrapper.loadServlet
+org.apache.catalina.startup.HostConfig#deployApps()  
+org.apache.catalina.startup.HostConfig#deployDirectories  
+org.apache.catalina.startup.HostConfig#DeployDirectory.run  
+org.apache.catalina.core.StandardHost#addChild  
+org.apache.catalina.core.StandardContext#startInternal  
+org.apache.catalina.core.StandardWrapper#load  
+org.apache.catalina.core.StandardWrapper#loadServlet  
+
+### 2.2.5 Tomcat如何维护请求地址与Servlet类的映射关系？
+
+如何根据请求地址，找到对应的Wrapper？  
+
+在web.xml文件中配置：  
+```xml
+  <servlet>
+    <servlet-name>ServletDemo</servlet-name>
+    <servlet-class>servlet.ServletDemo</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ServletDemo</servlet-name>
+    <url-pattern>/servlet/ServletDemo</url-pattern>
+  </servlet-mapping>
+```
+
+为请求选择Wrapper，即Servlet类型  
+org.apache.catalina.core.StandardContextValve#invoke  
+```java
+Wrapper wrapper = request.getWrapper();
+```
+
+具体是什么时候在Request对象中设置Wrapper的呢？  
+
+在处理请求的时候，将请求交给容器之前，首先为请求设置容器对象：  
+org.apache.coyote.http11.Http11Processor#service  
+org.apache.catalina.connector.CoyoteAdapter#service  
+org.apache.catalina.connector.CoyoteAdapter#postParseRequest  
+为请求设置Context容器：  
+org.apache.catalina.mapper.Mapper#internalMap  
+为请求设置Wrapper容器（通过请求路径匹配）：  
+org.apache.catalina.mapper.Mapper#internalMapWrapper   
+org.apache.catalina.mapper.Mapper#internalMapExactWrapper  
+
+
 

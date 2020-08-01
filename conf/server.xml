@@ -149,9 +149,12 @@
                resourceName="UserDatabase"/>
       </Realm>
 
-      <!--加载webapps目录下的web应用，对war包进行解压-->
+      <!--name的域名需要映射到本地ip。appBase表示加载webapps目录下的web应用。unpackWARs表示对war包进行解压-->
       <Host name="localhost"  appBase="webapps"
             unpackWARs="true" autoDeploy="true">
+
+        <!--path为应用名称，docBase为应用本地地址-->
+        <!--<Context path="/hello" docBase="C:\TOOL\Code\tomcat\tomcat\tomcat-note-sumkor\servlet-demo\target\servlet-demo"/>-->
 
         <!-- SingleSignOn valve, share authentication between web applications
              Documentation at: /docs/config/valve.html -->

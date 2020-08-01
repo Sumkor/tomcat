@@ -1086,7 +1086,7 @@ public class StandardWrapper extends ContainerBase
                 singleThreadModel = true;
             }
 
-            initServlet(servlet);// 构造Servlet实例，若没有继承SingleThreadModel，则只在这里实例化一次，因此为单例
+             initServlet(servlet);// 构造Servlet实例，若没有继承SingleThreadModel，则只在这里实例化一次，因此为单例
 
             fireContainerEvent("load", this);
 
