@@ -65,6 +65,28 @@ Pipeline {
 ```
 
 org.apache.catalina.core.StandardWrapper中，存储单个Servlet类型的实例、实例池：  
+```java
+/**
+ * The fully qualified servlet class name for this servlet.
+ */
+protected String servletClass = null;
+/**
+ * The (single) possibly uninitialized instance of this servlet.
+ */
+protected volatile Servlet instance = null;
+/**
+ * Stack containing the STM instances.
+ */
+protected Stack<Servlet> instancePool = null;
+/**
+ * Does this servlet implement the SingleThreadModel interface?
+ */
+protected volatile boolean singleThreadModel = false;
+/**
+ * Maximum number of STM instances.
+ */
+protected int maxInstances = 20;
+```
 org.apache.catalina.core.StandardWrapper#instance  
 org.apache.catalina.core.StandardWrapper#instancePool  
 
@@ -194,7 +216,7 @@ org.apache.coyote.AbstractProcessorLight#process
 读取HTTP请求行、请求头  
 org.apache.coyote.http11.Http11Processor#service  
 
-将请求传递给Servlet容器：Engine->Host->Context->Wrapper
+将请求传递给Servlet容器：Engine->Host->Context->Wrapper  
 org.apache.coyote.http11.Http11Processor#service  
 org.apache.catalina.connector.CoyoteAdapter.service
 
@@ -203,7 +225,7 @@ org.apache.catalina.core.StandardWrapperValve.invoke
 
 ### 2.2.4 生成Servlet
 
-项目启动的时候，生成servlet实例，后续请求都不会生成实例
+项目启动的时候，生成servlet实例，后续请求都不会生成实例  
 org.apache.catalina.startup.HostConfig#deployApps()  
 org.apache.catalina.startup.HostConfig#deployDirectories  
 org.apache.catalina.startup.HostConfig#DeployDirectory.run  
@@ -231,7 +253,10 @@ org.apache.catalina.core.StandardWrapper#loadServlet
 为请求选择Wrapper，即Servlet类型  
 org.apache.catalina.core.StandardContextValve#invoke  
 ```java
+// Select the Wrapper to be used for this Request // 为请求选择Wrapper
 Wrapper wrapper = request.getWrapper();
+// 从Wrapper的pipeline中取出第一个valve，将请求传递过去
+wrapper.getPipeline().getFirst().invoke(request, response);
 ```
 
 具体是什么时候在Request对象中设置Wrapper的呢？  
@@ -245,6 +270,77 @@ org.apache.catalina.mapper.Mapper#internalMap
 为请求设置Wrapper容器（通过请求路径匹配）：  
 org.apache.catalina.mapper.Mapper#internalMapWrapper   
 org.apache.catalina.mapper.Mapper#internalMapExactWrapper  
+
+# Tomcat自定义类加载器
+
+## 类加载器
+
+org.apache.catalina.startup.Bootstrap.initClassLoaders  
+```java
+ClassLoader commonLoader = null;
+ClassLoader catalinaLoader = null;
+ClassLoader sharedLoader = null;
+
+private void initClassLoaders() {
+    try {
+        commonLoader = createClassLoader("common", null);
+        if (commonLoader == null) {
+            // no config file, default to this loader - we might be in a 'single' env.
+            commonLoader = this.getClass().getClassLoader();
+        }
+        catalinaLoader = createClassLoader("server", commonLoader);
+        sharedLoader = createClassLoader("shared", commonLoader);
+    } catch (Throwable t) {
+        handleThrowable(t);
+        log.error("Class loader creation threw exception", t);
+        System.exit(1);
+    }
+}
+```
+
+自定义webapp类加载器：  
+org.apache.catalina.loader.WebappClassLoader  
+具体实现：  
+org.apache.catalina.loader.WebappClassLoaderBase#loadClass  
+
+Tomcat平台  
+应用A:com.sumkor.Test  
+应用B:com.sumkor.Test  
+为每个应用生成不同的WebappClassLoader实例  
+
+《深入理解Java虚拟机》  
+9.2.1　Tomcat：正统的类加载器架构  
+所以Tomcat 6之后也顺理成章地把/common、/server和/shared这3个目录默认合并到一起变成1个/lib目录，这个目录里的类库
+相当于以前/common目录中类库的作用  
+
+java.net.URLClassLoader作用在于，可以通过URL资源地址，去加载指定路径下的类文件。  
+
+## 热部署
+
+主体：Host  
+触发条件：修改了Context的属性  
+结果，触发Host重新部署Context  
+
+## 热加载
+
+主题：Context   
+触发条件：WEB-INF目录下类文件的修改时间有变动，或者jar文件增加、修改、删除    
+结果：触发Context重新加载类  
+
+注意，增加类文件不会立即触发重新加载，因为类加载是按需加载？   
+
+热加载实现：  
+org.apache.catalina.loader.WebappLoader#backgroundProcess  
+org.apache.catalina.loader.WebappClassLoaderBase#modified   
+
+热加载，需要想办法将旧的class对象，从jvm中卸载掉。  
+把用到旧class对象的线程停掉，触发jvm执行垃圾回收。但是很难被回收，结果会导致jvm中的对象越来越多。  
+
+ 
+
+# embed
+
+
 
 
 

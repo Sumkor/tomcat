@@ -129,7 +129,7 @@ final class StandardWrapperValve
             unavailable = true;
         }
 
-        // Allocate a servlet instance to process this request// 为请求生成Servlet实例
+        // Allocate a servlet instance to process this request// 为请求生成或加载Servlet实例
         try {
             if (!unavailable) {
                 servlet = wrapper.allocate();
@@ -198,7 +198,7 @@ final class StandardWrapperValve
                     if (request.isAsyncDispatching()) {
                         request.getAsyncContextInternal().doInternalDispatch();
                     } else {
-                        filterChain.doFilter// 依次执行过滤器链
+                        filterChain.doFilter// 依次执行过滤器链，在这里将Request对象转换成门面RequestFacade
                             (request.getRequest(), response.getResponse());
                     }
                 }

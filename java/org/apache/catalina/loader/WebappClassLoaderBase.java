@@ -1225,8 +1225,8 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
             // Log access to stopped class loader
             checkStateForClassLoading(name);
 
-            // (0) Check our previously loaded local class cache
-            clazz = findLoadedClass0(name);
+            // (0) Check our previously loaded local class cache // 先检查该类是否已经被webapp类加载器加载过
+            clazz = findLoadedClass0(name);// 对比 java.lang.ClassLoader.findLoadedClass0 本地方法从jvm中获取已加载的类，Tomcat从自己的缓存中查找
             if (clazz != null) {
                 if (log.isDebugEnabled())
                     log.debug("  Returning class from cache");
@@ -1248,9 +1248,10 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
             // (0.2) Try loading the class with the system class loader, to prevent
             //       the webapp from overriding Java SE classes. This implements
             //       SRV.10.7.2
+            //       尝试通过系统类加载器（AppClassLoader）加载类，避免webapp重写JDK中的类。即双亲委派
             String resourceName = binaryNameToPath(name, false);
 
-            ClassLoader javaseLoader = getJavaseClassLoader();
+            ClassLoader javaseLoader = getJavaseClassLoader();// 解决java.*包下类的加载安全性问题
             boolean tryLoadingFromJavaseLoader;
             try {
                 // Use getResource as it won't trigger an expensive
@@ -1309,7 +1310,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
 
             boolean delegateLoad = delegate || filter(name, true);
 
-            // (1) Delegate to our parent if requested
+            // (1) Delegate to our parent if requested // 委派给父类加载器加载
             if (delegateLoad) {
                 if (log.isDebugEnabled())
                     log.debug("  Delegating to parent classloader1 " + parent);
@@ -1331,7 +1332,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
             if (log.isDebugEnabled())
                 log.debug("  Searching local repositories");
             try {
-                clazz = findClass(name);
+                clazz = findClass(name);// 使用webApp类加载器，自行加载
                 if (clazz != null) {
                     if (log.isDebugEnabled())
                         log.debug("  Loading class from local repository");
@@ -1343,7 +1344,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                 // Ignore
             }
 
-            // (3) Delegate to parent unconditionally
+            // (3) Delegate to parent unconditionally // 如果webApp应用内部没有加载到该类，则无条件委托给父类加载器加载
             if (!delegateLoad) {
                 if (log.isDebugEnabled())
                     log.debug("  Delegating to parent classloader at end: " + parent);
@@ -2492,7 +2493,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
 
         String path = binaryNameToPath(name, true);
 
-        ResourceEntry entry = resourceEntries.get(path);
+        ResourceEntry entry = resourceEntries.get(path);// key:目录/com/../.., value:ResourceEntry 即已经被加载的class对象
         if (entry != null) {
             return entry.loadedClass;
         }

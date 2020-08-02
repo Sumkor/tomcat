@@ -1039,7 +1039,7 @@ public class StandardWrapper extends ContainerBase
 
             InstanceManager instanceManager = ((StandardContext)getParent()).getInstanceManager();
             try {
-                servlet = (Servlet) instanceManager.newInstance(servletClass);
+                servlet = (Servlet) instanceManager.newInstance(servletClass);// 构造Servlet实例，若没有继承SingleThreadModel，则只在这里实例化一次，因此为单例
             } catch (ClassCastException e) {
                 unavailable(null);
                 // Restore the context ClassLoader
@@ -1086,7 +1086,7 @@ public class StandardWrapper extends ContainerBase
                 singleThreadModel = true;
             }
 
-             initServlet(servlet);// 构造Servlet实例，若没有继承SingleThreadModel，则只在这里实例化一次，因此为单例
+             initServlet(servlet);// 初始化Servlet
 
             fireContainerEvent("load", this);
 

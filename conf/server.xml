@@ -66,6 +66,7 @@
          APR (HTTP/AJP) Connector: /docs/apr.html
          Define a non-SSL/TLS HTTP/1.1 Connector on port 8080
     -->
+    <!--自定义指定协议：protocol="org.apache.coyote.http11.Http11NioProtocol" -->
     <Connector port="8080" protocol="HTTP/1.1"
                connectionTimeout="20000"
                redirectPort="8443" />
@@ -149,7 +150,7 @@
                resourceName="UserDatabase"/>
       </Realm>
 
-      <!--name的域名需要映射到本地ip。appBase表示加载webapps目录下的web应用。unpackWARs表示对war包进行解压-->
+      <!--name的域名需要映射到本地ip。appBase表示加载webapps目录下的web应用。unpackWARs表示对war包进行解压。autoDeploy表示热部署。-->
       <Host name="localhost"  appBase="webapps"
             unpackWARs="true" autoDeploy="true">
 

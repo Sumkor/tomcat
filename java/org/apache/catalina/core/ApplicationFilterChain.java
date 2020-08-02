@@ -174,7 +174,7 @@ public final class ApplicationFilterChain implements FilterChain {
 
         // Call the next filter if there is one
         if (pos < n) {
-            ApplicationFilterConfig filterConfig = filters[pos++];
+            ApplicationFilterConfig filterConfig = filters[pos++];// 根据下标从数组里面取过滤器实例，下标加一
             try {
                 Filter filter = filterConfig.getFilter();
 
@@ -191,7 +191,7 @@ public final class ApplicationFilterChain implements FilterChain {
                     Object[] args = new Object[]{req, res, this};
                     SecurityUtil.doAsPrivilege ("doFilter", filter, classType, args, principal);
                 } else {
-                    filter.doFilter(request, response, this);// 调用下一个过滤器
+                    filter.doFilter(request, response, this);// 递归，调用下一个过滤器
                 }
             } catch (IOException | ServletException | RuntimeException e) {
                 throw e;
