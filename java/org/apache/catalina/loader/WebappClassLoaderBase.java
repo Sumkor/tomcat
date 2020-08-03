@@ -1344,7 +1344,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                 // Ignore
             }
 
-            // (3) Delegate to parent unconditionally // 如果webApp应用内部没有加载到该类，则无条件委托给父类加载器加载
+            // (3) Delegate to parent unconditionally // 如果webApp应用内部没有加载到该类，且父类加载器没有加载过该类，则无条件委托给父类加载器加载
             if (!delegateLoad) {
                 if (log.isDebugEnabled())
                     log.debug("  Delegating to parent classloader at end: " + parent);
@@ -1363,7 +1363,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
             }
         }
 
-        throw new ClassNotFoundException(name);
+        throw new ClassNotFoundException(name);// 最终还是加载不到该类，则抛出异常
     }
 
 

@@ -744,7 +744,7 @@ public final class Mapper {
             throw new AssertionError();
         }
 
-        // Virtual host mapping
+        // Virtual host mapping // 为请求选择对应的Host容器
         MappedHost[] hosts = this.hosts;
         MappedHost mappedHost = exactFindIgnoreCase(hosts, host);
         if (mappedHost == null) {
