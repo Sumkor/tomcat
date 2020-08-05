@@ -190,7 +190,7 @@ public class JspServletWrapper {
 
                     try {
                         InstanceManager instanceManager = InstanceManagerFactory.getInstanceManager(config);
-                        servlet = (Servlet) instanceManager.newInstance(ctxt.getFQCN(), ctxt.getJspLoader());
+                        servlet = (Servlet) instanceManager.newInstance(ctxt.getFQCN(), ctxt.getJspLoader());// 对jsp文件，清除旧的类加载器，使用新的类加载器创建新的servlet
                     } catch (Exception e) {
                         Throwable t = ExceptionUtils
                                 .unwrapInvocationTargetException(e);
@@ -391,7 +391,7 @@ public class JspServletWrapper {
             }
 
             /*
-             * (1) Compile
+             * (1) Compile // 定位到JSP文件，判断是否生成编译成新的class文件
              */
             if (options.getDevelopment() || mustCompile) {
                 synchronized (this) {
@@ -409,7 +409,7 @@ public class JspServletWrapper {
             }
 
             /*
-             * (2) (Re)load servlet class file
+             * (2) (Re)load servlet class file // 判断是否将class重新加载成新的servlet对象（卸载旧的类加载器，使用新的类加载器来加载）
              */
             servlet = getServlet();
 
@@ -465,7 +465,7 @@ public class JspServletWrapper {
             }
 
             /*
-             * (4) Service request
+             * (4) Service request // 使用新的Servlet来处理请求
              */
             if (servlet instanceof SingleThreadModel) {
                // sync on the wrapper so that the freshness

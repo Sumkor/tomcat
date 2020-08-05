@@ -396,7 +396,15 @@ org.apache.catalina.loader.WebappClassLoaderBase#modified
 热加载，需要想办法将旧的class对象，从jvm中卸载掉。  
 把用到旧class对象的线程停掉，触发jvm执行垃圾回收。但是很难被回收，结果会导致jvm中的对象越来越多。  
 
- 
+## JSP热加载
+
+org.apache.jasper.servlet.JspServletWrapper.service
+
+1. 根据url地址，定位jsp文件，编译成class文件  
+org.apache.jasper.JspCompilationContext.compile
+2. 重新加载class文件（卸载旧的类加载器，使用新的类加载器来加载）
+org.apache.jasper.servlet.JspServletWrapper.getServlet
+3. 使用新的Servlet来处理请求
 
 # embed
 
