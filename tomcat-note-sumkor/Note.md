@@ -406,6 +406,8 @@ org.apache.jasper.JspCompilationContext.compile
 org.apache.jasper.servlet.JspServletWrapper.getServlet
 3. 使用新的Servlet来处理请求
 
+![jsp热加载](./jsp热加载.png)
+
 # embed
 
 
