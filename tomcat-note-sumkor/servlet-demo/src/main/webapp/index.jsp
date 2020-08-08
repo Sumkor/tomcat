@@ -9,5 +9,7 @@
     <input type="submit" value="表单Post()请求">
 </form>
 
+<a href="myAsyncServlet">异步Get()请求</a><br>
+
 </body>
 </html>

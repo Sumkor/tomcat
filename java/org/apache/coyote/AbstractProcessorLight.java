@@ -62,7 +62,7 @@ public abstract class AbstractProcessorLight implements Processor {
                 // Extra write event likely after async, ignore
                 state = SocketState.LONG;
             } else if (status == SocketEvent.OPEN_READ) {
-                state = service(socketWrapper); // 从Socket中取数据
+                state = service(socketWrapper); // 接收并处理请求：从Socket中取数据，构建Request对象，调用Servlet等
             } else if (status == SocketEvent.CONNECT_FAIL) {
                 logAccess(socketWrapper);
             } else {
@@ -78,7 +78,7 @@ public abstract class AbstractProcessorLight implements Processor {
             }
 
             if (isAsync()) {
-                state = asyncPostProcess();
+                state = asyncPostProcess();// 处理异步流程，比如监听子线程的执行情况
                 if (getLog().isDebugEnabled()) {
                     getLog().debug("Socket: [" + socketWrapper +
                             "], State after async post processing: [" + state + "]");

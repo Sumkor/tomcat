@@ -436,7 +436,37 @@ org.apache.jasper.servlet.JspServletWrapper.getServlet
 
 ## 4.2 异步
 
+总体思想是，将request、response对象设置在上下文AsyncContext之中，并通过上下文传递给子线程，由子线程去执行耗时任务。    
+```java
+AsyncContext asyncContext = req.startAsync();
+asyncContext.start(new Runnable(){...})// 另启线程执行任务
+```
+org.apache.catalina.connector.Request.startAsync  
+org.apache.catalina.core.AsyncContextImpl.start  
 
+子线程设置执行标识：    
+```java
+asyncContext.complete();// 设置任务执行完成状态
+```
+org.apache.catalina.core.AsyncContextImpl.complete
+```java
+request.getCoyoteRequest().action(ActionCode.ASYNC_COMPLETE, null);
+```
 
-可用消息队列替代
+在主线程中使用do-while循环，轮询子线程的执行状态？：  
+org.apache.coyote.AbstractProtocol.ConnectionHandler.process   
+org.apache.coyote.AbstractProcessorLight.process  
+org.apache.coyote.AsyncStateMachine.asyncPostProcess  
+```java
+if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
+    asyncCtxt.fireOnComplete();// 监听到子线程执行完毕了，调用listener.complete方法
+    state = AsyncState.DISPATCHED;
+    return SocketState.ASYNC_END;
+}
+```
+org.apache.catalina.core.AsyncContextImpl.fireOnComplete  
+org.apache.catalina.core.AsyncListenerWrapper.fireOnComplete  
 
+当主线程、子线程的任务全部执行完成时，当前请求的socket连接才关闭？  
+
+由于涉及线程间的交互，且有超时时间限制，实际运用上，可用消息队列替代。

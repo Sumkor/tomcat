@@ -14,7 +14,7 @@ import java.io.IOException;
  * @author Sumkor
  * @since 2020/7/24
  */
-@WebFilter(filterName = "myFilter02", urlPatterns = "/*", dispatcherTypes = {DispatcherType.REQUEST, DispatcherType.FORWARD})
+@WebFilter(filterName = "myFilter02", urlPatterns = "/myServlet", dispatcherTypes = {DispatcherType.REQUEST, DispatcherType.FORWARD})
 public class MyFilter02 implements Filter {
 
     private static final Logger logger = LogManager.getLogger();
