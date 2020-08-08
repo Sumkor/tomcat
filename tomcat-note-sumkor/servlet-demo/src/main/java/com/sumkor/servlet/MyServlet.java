@@ -3,6 +3,7 @@ package com.sumkor.servlet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -20,6 +21,12 @@ public class MyServlet extends HttpServlet {
 
     private static final Logger logger = LogManager.getLogger();
 
+    @Override
+    public void init(ServletConfig servletConfig) throws ServletException {
+        super.init(servletConfig);
+        logger.info("初始化...");
+    }
+
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         logger.info("处理Get()请求...");
@@ -28,6 +35,7 @@ public class MyServlet extends HttpServlet {
         out.print("<strong>Get请求</strong>");
         out.flush();
     }
+
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         logger.info("处理Post()请求...");
@@ -36,5 +44,11 @@ public class MyServlet extends HttpServlet {
         PrintWriter out = resp.getWriter();
         out.print("<strong>Post请求</strong>");
         out.flush();
+    }
+
+    @Override
+    public void destroy() {
+        super.destroy();
+        logger.info("销毁...");
     }
 }

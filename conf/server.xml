@@ -155,7 +155,7 @@
             unpackWARs="true" autoDeploy="true">
 
         <!--path为应用名称，docBase为应用本地地址-->
-        <!--<Context path="/hello" docBase="C:\TOOL\Code\tomcat\tomcat\tomcat-note-sumkor\servlet-demo\target\servlet-demo"/>-->
+        <Context path="/servlet-demo" docBase="../tomcat-note-sumkor/servlet-demo/target/servlet-demo"/>
 
         <!-- SingleSignOn valve, share authentication between web applications
              Documentation at: /docs/config/valve.html -->

@@ -1,5 +1,7 @@
 # 1. Tomcat底层架构
 
+来源：https://www.bilibili.com/video/BV19E411j7cD
+
 ## 1.1 Tomcat是一个Servlet容器
 
 ```code
@@ -162,7 +164,7 @@ serverSock.socket().bind(addr,getAcceptCount());
 
 ### 2.2.2 启动HTTP服务，监听请求
 
-org.apache.catalina.startup.Bootstrap#start
+org.apache.catalina.startup.Bootstrap#start  
 org.apache.catalina.startup.Catalina#start  
 org.apache.catalina.core.StandardServer#startInternal  
 org.apache.coyote.AbstractProtocol#start  
@@ -245,7 +247,8 @@ org.apache.catalina.core.StandardContext#startInternal
 org.apache.catalina.core.StandardWrapper#load  
 org.apache.catalina.core.StandardWrapper#loadServlet  
 ```java
-Servlet servlet = (Servlet) instanceManager.newInstance(servletClass);
+Servlet servlet = (Servlet) instanceManager.newInstance(servletClass);// 创建实例
+initServlet(servlet);// 调用Servlet.init方法
 ```
 
 ### 2.2.5 Tomcat如何维护请求地址与Servlet类的映射关系？
@@ -314,9 +317,12 @@ org.apache.catalina.mapper.Mapper#internalMap
 org.apache.catalina.mapper.Mapper#internalMapWrapper   
 org.apache.catalina.mapper.Mapper#internalMapExactWrapper  
 
-# Tomcat自定义类加载器
+# 3. Tomcat自定义类加载器
 
-类加载过程：
+来源：https://www.bilibili.com/video/BV11g4y1q7fb
+
+## 3.1 类加载过程：
+
 1. 加载class文件到JVM（染色体）
 2. 校验
 3. 准备（Java内存模型）（申请肚子）
@@ -325,7 +331,7 @@ org.apache.catalina.mapper.Mapper#internalMapExactWrapper
 6. 使用（new对象）
 7. 销毁
 
-## 类加载器
+## 3.2 类加载器
 
 为每个应用生成不同的WebappClassLoader实例 
 
@@ -333,6 +339,13 @@ Tomcat平台 -----> commonClassLoader
 应用A:com.sumkor.Test -----> WebappClassLoader  
 应用B:com.sumkor.Test -----> WebappClassLoader  
  
+Tomcat5的类加载体系结构如下：
+
+![tomcat5类加载器](./tomcat5类加载器.jpg)
+
+Tomcat6的类加载体系结构如下：
+
+![tomcat6类加载器](./tomcat6类加载器.jpg)
 
 《深入理解Java虚拟机》  
 9.2.1　Tomcat：正统的类加载器架构  
@@ -371,7 +384,7 @@ org.apache.catalina.loader.WebappClassLoader
 具体实现：  
 org.apache.catalina.loader.WebappClassLoaderBase#loadClass  
 
-## 热部署
+## 3.3 热部署
 
 主体：Host  
 配置：server.xml的Host标签配置autoDeploy="true"  
@@ -380,7 +393,7 @@ org.apache.catalina.loader.WebappClassLoaderBase#loadClass
 
 https://www.cnblogs.com/Marydon20170307/p/7141784.html
 
-## 热加载
+## 3.4 热加载
 
 主体：Context   
 配置：server.xml的Context标签的reloadable为true
@@ -396,21 +409,34 @@ org.apache.catalina.loader.WebappClassLoaderBase#modified
 热加载，需要想办法将旧的class对象，从jvm中卸载掉。  
 把用到旧class对象的线程停掉，触发jvm执行垃圾回收。但是很难被回收，结果会导致jvm中的对象越来越多。  
 
-## JSP热加载
+## 3.5 JSP热加载
 
 org.apache.jasper.servlet.JspServletWrapper.service
 
 1. 根据url地址，定位jsp文件，编译成class文件  
 org.apache.jasper.JspCompilationContext.compile
-2. 重新加载class文件（卸载旧的类加载器，使用新的类加载器来加载）
+2. 重新加载class文件（卸载旧的类加载器，使用新的类加载器来加载）  
 org.apache.jasper.servlet.JspServletWrapper.getServlet
 3. 使用新的Servlet来处理请求
 
 ![jsp热加载](./jsp热加载.png)
 
+来源：https://www.bilibili.com/video/BV16W411A7wE?p=5
+
 # embed
 
 
+# 4. Servlet
+
+## 4.1 servlet生命周期
+
+![servlet生命周期](./servlet生命周期.png)
+
+来源：https://www.bilibili.com/video/BV13E41137Bv
+
+## 4.2 异步
 
 
+
+可用消息队列替代
 
