@@ -56,13 +56,13 @@ public abstract class AbstractProcessorLight implements Processor {
             } else if (status == SocketEvent.DISCONNECT) {
                 // Do nothing here, just wait for it to get recycled
             } else if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
-                state = dispatch(status);
+                state = dispatch(status);// 处理异步请求，即通过asyncContext.complete()会执行到这里
                 state = checkForPipelinedData(state, socketWrapper);
             } else if (status == SocketEvent.OPEN_WRITE) {
                 // Extra write event likely after async, ignore
                 state = SocketState.LONG;
             } else if (status == SocketEvent.OPEN_READ) {
-                state = service(socketWrapper); // 接收并处理请求：从Socket中取数据，构建Request对象，调用Servlet等
+                state = service(socketWrapper); // 处理同步请求：从Socket中取数据，构建Request对象，调用容器执行Servlet等
             } else if (status == SocketEvent.CONNECT_FAIL) {
                 logAccess(socketWrapper);
             } else {
@@ -78,7 +78,7 @@ public abstract class AbstractProcessorLight implements Processor {
             }
 
             if (isAsync()) {
-                state = asyncPostProcess();// 处理异步流程，比如监听子线程的执行情况
+                state = asyncPostProcess();// 处理异步流程，比如调用监听子线程的listener方法
                 if (getLog().isDebugEnabled()) {
                     getLog().debug("Socket: [" + socketWrapper +
                             "], State after async post processing: [" + state + "]");

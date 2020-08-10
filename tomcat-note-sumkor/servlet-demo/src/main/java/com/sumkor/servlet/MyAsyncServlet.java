@@ -50,27 +50,27 @@ public class MyAsyncServlet extends HttpServlet {
         });
 
         // 监听异步任务执行结果
-//        asyncContext.addListener(new AsyncListener() {
-//            @Override
-//            public void onComplete(AsyncEvent asyncEvent) throws IOException {
-//                logger.info("异步请求执行完成");
-//            }
-//
-//            @Override
-//            public void onTimeout(AsyncEvent asyncEvent) throws IOException {
-//                logger.info("异步请求执行超时", asyncEvent.getThrowable());
-//            }
-//
-//            @Override
-//            public void onError(AsyncEvent asyncEvent) throws IOException {
-//                logger.info("异步请求执行失败", asyncEvent.getThrowable());
-//            }
-//
-//            @Override
-//            public void onStartAsync(AsyncEvent asyncEvent) throws IOException {
-//                logger.info("异步请求执行开始");
-//            }
-//        });
+        asyncContext.addListener(new AsyncListener() {
+            @Override
+            public void onComplete(AsyncEvent asyncEvent) throws IOException {
+                logger.info("异步请求执行完成");
+            }
+
+            @Override
+            public void onTimeout(AsyncEvent asyncEvent) throws IOException {
+                logger.info("异步请求执行超时", asyncEvent.getThrowable());
+            }
+
+            @Override
+            public void onError(AsyncEvent asyncEvent) throws IOException {
+                logger.info("异步请求执行失败", asyncEvent.getThrowable());
+            }
+
+            @Override
+            public void onStartAsync(AsyncEvent asyncEvent) throws IOException {
+                logger.info("异步请求执行开始");
+            }
+        });
 
         out.println("离开Servlet的时间：" + new Date());
         out.println("<br/>");

@@ -128,7 +128,15 @@ org.apache.catalina.connector.Request 内部真正的实现
  3. 发送数据
  
 Tomcat：
- 1. 接收数据（从Socket中取数据）
+ 1. 客户端发出http请求至tomcat的连接监听端口；
+ 2. tomcat connector接收线程接收请求，并根据http协议解析该次请求；
+ 3. tomcat 通过解析的http报文，初始化org.apache.coyote.Request，并实例化org.apache.coyote.Response;
+ 4. 经装饰模式转化为servlet api对应的HttpServletRequest与HttpServletResponse;
+ 5. 经tomcat的层层容器engine,host,context最终到过我们所写的业务servlet的service方法；
+ 6. 业务方法service,处理相关的业务逻辑,写入相应的响应的至response，并返回tomcat的容器组件；
+ 7. tomcat该处理线程关闭响应流Response并将响应内容返回客户端;
+ 8. tomcat该处理线程被释放，然后用于下次请求的处理;
+
 
 IO模型：NIO、BIO(tomcat9不再支持)  
  
@@ -434,7 +442,9 @@ org.apache.jasper.servlet.JspServletWrapper.getServlet
 
 来源：https://www.bilibili.com/video/BV13E41137Bv
 
-## 4.2 异步
+## 4.2 异步处理请求
+
+### 4.1.1 如何使用异步
 
 总体思想是，将request、response对象设置在上下文AsyncContext之中，并通过上下文传递给子线程，由子线程去执行耗时任务。    
 ```java
@@ -443,19 +453,134 @@ asyncContext.start(new Runnable(){...})// 另启线程执行任务
 ```
 org.apache.catalina.connector.Request.startAsync  
 org.apache.catalina.core.AsyncContextImpl.start  
+```java
+public void start(final Runnable run) {
+    check();
+    Runnable wrapper = new RunnableWrapper(run, context, this.request.getCoyoteRequest());
+    this.request.getCoyoteRequest().action(ActionCode.ASYNC_RUN, wrapper);
+}
+```
 
-子线程设置执行标识：    
+tomcat结合servlet3异步化的整体请求处理过程大致如下：
+
+ 1. 客户端发出http请求至tomcat的连接监听端口；
+ 2. tomcat connector接收线程接收请求，并根据http协议解析该次请求；
+ 3. tomcat 通过解析的http报文，实例化org.apache.coyote.Request，并实例化org.apache.coyote.Response;
+ 4. 经装饰模式转化为servlet api对应的HttpServletRequest与HttpServletReponse;
+ 5. 经tomcat的层层容器engine,host,context最终到过我们所写的业务servlet的service方法；
+ 6. 业务方法开启异步化上下文AsynContext;释放tomcat当前处理线程；
+ 7. tomcat判断当前请求是否开启了异步化，如果开启则不关闭响应流Response，也不进行用户响应的返回;
+ 8. tomcat该线程被释放，然后用于下次请求的处理，提高其吞吐量;
+ 9. 业务方法在AsynContext环境中完成业务方法的处理，调用其complete方法，将响应写回响应流，并关闭响应流，完成此次请求处理.
+
+提前释放tomcat的处理线程，是为了让tomcat的线程使用率更高，提高吞吐量；  
+不关闭响应流为的是我们在业务中处理了占用长时间的业务操作之后，自己进行响应流的返回并进行关闭。  
+响应时间并没有加快，还是会取决于我们的业务逻辑。默认超时时间是30S，也就是说异步处理逻辑超过30S后就会报错。
+
+来源：https://blog.csdn.net/zhurhyme/article/details/76228836
+
+### 4.1.2 子线程执行完成后的处理
+  
 ```java
 asyncContext.complete();// 设置任务执行完成状态
 ```
-org.apache.catalina.core.AsyncContextImpl.complete
+
+org.apache.catalina.core.AsyncContextImpl#complete
 ```java
 request.getCoyoteRequest().action(ActionCode.ASYNC_COMPLETE, null);
 ```
 
-在主线程中使用do-while循环，轮询子线程的执行状态？：  
-org.apache.coyote.AbstractProtocol.ConnectionHandler.process   
-org.apache.coyote.AbstractProcessorLight.process  
+org.apache.coyote.AbstractProcessor#action
+```java
+case ASYNC_COMPLETE: {
+    clearDispatches();
+    if (asyncStateMachine.asyncComplete()) {
+        processSocketEvent(SocketEvent.OPEN_READ, true);
+    }
+    break;
+}
+```
+
+org.apache.tomcat.util.net.AbstractEndpoint#processSocket  
+这里最终会调用AbstractEndpoint的processSocket方法，EndPoint是用来接受和处理请求的。  
+接下来就会交给Processor去进行协议处理。  
+
+org.apache.coyote.AbstractProcessorLight#process  
+```java
+else if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
+    state = dispatch(status); // 处理异步请求，即通过asyncContext.complete()会执行到这里
+    state = checkForPipelinedData(state, socketWrapper);
+} else if (status == SocketEvent.OPEN_WRITE) {
+    // Extra write event likely after async, ignore
+    state = SocketState.LONG;
+} else if (status == SocketEvent.OPEN_READ) {
+    state = service(socketWrapper); // 处理同步请求：从Socket中取数据，构建Request对象，调用容器执行Servlet等
+}
+
+if (isAsync()) {
+    state = asyncPostProcess();// 处理异步流程，比如调用监听子线程的listener方法
+}
+```
+这部分是重点，AbstractProcessorLight会根据SocketEvent的状态来判断调用逻辑。  
+因为当前请求是执行完成后调用的，肯定不能调用service方法进容器了，不然就是死循环了，这里通过isAsync()判断，就会进入dispatch(status)。  
+
+org.apache.catalina.connector.CoyoteAdapter#asyncDispatch  
+```java
+if (!request.isAsyncDispatching() && request.isAsync()) {
+    res.onWritePossible(); // 这里执行浏览器响应，写入数据
+}
+```
+最终会调用CoyoteAdapter的asyncDispatch方法，完成了数据的输出，最终输出到浏览器。  
+
+这里有同学可能会说，我知道异步执行完后，调用ctx.complete()会输出到浏览器，但是，第一次doGet请求执行完成后，Tomcat是怎么知道不用返回到客户端的呢？关键代码在CoyoteAdapter中的service方法，部分代码如下：  
+
+org.apache.catalina.connector.CoyoteAdapter#service
+```java
+// 前置处理请求，为请求设置对应的host、context、wrapper容器
+postParseSuccess = postParseRequest(req, request, res, response);
+//省略部分代码
+if (postParseSuccess) {
+    request.setAsyncSupported(connector.getService().getContainer().getPipeline().isAsyncSupported());
+    // 通过pipeline调用容器中的各个valve
+    connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
+}
+if (request.isAsync()) {
+    async = true;
+} else {
+    // 输出数据到客户端
+    request.finishRequest();
+    response.finishResponse();
+if (!async) {
+    updateWrapperErrorCount(request, response);
+    // 销毁request和response
+    request.recycle();
+    response.recycle();
+}
+```
+
+这部分代码在调用完 Servlet 后，会通过 request.isAsync() 来判断是否是异步请求，如果是异步请求，就设置 async = true 。如果是非异步请求就执行输出数据到客户端逻辑，同时销毁 request 和 response 。这里就完成了请求结束后不响应客户端的操作。
+
+来源：https://my.oschina.net/luozhou/blog/3116782
+
+### 4.1.3 监听异步处理结果
+
+给asyncContext添加监听器：  
+```java
+asyncContext.addListener(new AsyncListener(){...})
+```
+
+调用链：  
+org.apache.coyote.AbstractProtocol#ConnectionHandler.process   
+org.apache.coyote.AbstractProcessorLight#process  
+```java
+if (isAsync()) {
+    state = asyncPostProcess();// 处理异步流程，比如监听子线程的执行情况
+    if (getLog().isDebugEnabled()) {
+        getLog().debug("Socket: [" + socketWrapper +
+                "], State after async post processing: [" + state + "]");
+    }
+}
+```
 org.apache.coyote.AsyncStateMachine.asyncPostProcess  
 ```java
 if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
@@ -467,6 +592,10 @@ if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
 org.apache.catalina.core.AsyncContextImpl.fireOnComplete  
 org.apache.catalina.core.AsyncListenerWrapper.fireOnComplete  
 
-当主线程、子线程的任务全部执行完成时，当前请求的socket连接才关闭？  
+### 4.1.4 聊聊异步Servlet的使用场景
+
+分析了这么多，那么异步Servlet的使用场景有哪些呢？其实我们只要抓住一点就可以分析了，就是异步Servlet提高了系统的吞吐量，可以接受更多的请求。假设web系统中Tomcat的线程不够用了，大量请求在等待，而此时Web系统应用层面的优化已经不能再优化了，也就是无法缩短业务逻辑的响应时间了，这个时候，如果想让减少用户的等待时间，提高吞吐量，可以尝试下使用异步Servlet。
+
+举一个实际的例子：比如做一个短信系统，短信系统对实时性要求很高，所以要求等待时间尽可能短，而发送功能我们实际上是委托运营商去发送的，也就是说我们要调用接口，假设并发量很高，那么这个时候业务系统调用我们的发送短信功能，就有可能把我们的Tomcat线程池用完，剩下的请求就会在队列中等待，那这个时候，短信的延时就上去了，为了解决这个问题，我们可以引入异步Servlet,接受更多的短信发送请求，从而减少短信的延时。
 
 由于涉及线程间的交互，且有超时时间限制，实际运用上，可用消息队列替代。

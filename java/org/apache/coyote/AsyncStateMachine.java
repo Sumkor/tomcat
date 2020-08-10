@@ -272,7 +272,7 @@ class AsyncStateMachine {
             state = AsyncState.STARTED;
             return SocketState.LONG;
         } else if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
-            asyncCtxt.fireOnComplete();
+            asyncCtxt.fireOnComplete(); // 监听到子线程执行完毕了，调用listener.complete方法
             state = AsyncState.DISPATCHED;
             return SocketState.ASYNC_END;
         } else if (state == AsyncState.MUST_DISPATCH) {

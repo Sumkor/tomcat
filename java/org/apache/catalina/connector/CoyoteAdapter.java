@@ -178,14 +178,14 @@ public class CoyoteAdapter implements Adapter {
             }
 
             // Check to see if non-blocking writes or reads are being used
-            if (!request.isAsyncDispatching() && request.isAsync()) {
+            if (!request.isAsyncDispatching() && request.isAsync()) { // 异步请求，且已经处理完成，即调用了asyncContext.complete()
                 WriteListener writeListener = res.getWriteListener();
                 ReadListener readListener = req.getReadListener();
                 if (writeListener != null && status == SocketEvent.OPEN_WRITE) {
                     ClassLoader oldCL = null;
                     try {
                         oldCL = request.getContext().bind(false, null);
-                        res.onWritePossible();
+                        res.onWritePossible(); // 这里执行浏览器响应，写入数据
                         if (request.isFinished() && req.sendAllDataReadEvent() &&
                                 readListener != null) {
                             readListener.onAllDataRead();
@@ -226,12 +226,12 @@ public class CoyoteAdapter implements Adapter {
             // processed by the application's error page mechanism (or Tomcat's
             // if the application doesn't define one)?
             if (!request.isAsyncDispatching() && request.isAsync() &&
-                    response.isErrorReportRequired()) {
+                    response.isErrorReportRequired()) { // 需要跳转的错误页
                 connector.getService().getContainer().getPipeline().getFirst().invoke(
                         request, response);
             }
 
-            if (request.isAsyncDispatching()) {
+            if (request.isAsyncDispatching()) { // 这里判断异步正在进行，说明这不是一个完成方法的回调，继续调用容器
                 connector.getService().getContainer().getPipeline().getFirst().invoke(
                         request, response);
                 Throwable t = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
@@ -285,7 +285,7 @@ public class CoyoteAdapter implements Adapter {
             }
 
             req.getRequestProcessor().setWorkerThreadName(null);
-            // Recycle the wrapper request and response
+            // Recycle the wrapper request and response // 销毁request和response
             if (!success || !request.isAsync()) {
                 updateWrapperErrorCount(request, response);
                 request.recycle();
@@ -334,13 +334,13 @@ public class CoyoteAdapter implements Adapter {
         try {
             // Parse and set Catalina and configuration specific
             // request parameters
-            postParseSuccess = postParseRequest(req, request, res, response);// 前置处理请求，为请求设置对应的host、context、wrapper容器
+            postParseSuccess = postParseRequest(req, request, res, response); // 前置处理请求，为请求设置对应的host、context、wrapper容器
             if (postParseSuccess) {
                 //check valves if we support async
                 request.setAsyncSupported(
                         connector.getService().getContainer().getPipeline().isAsyncSupported());
                 // Calling the container
-                connector.getService().getContainer().getPipeline().getFirst().invoke(
+                connector.getService().getContainer().getPipeline().getFirst().invoke( // 通过pipeline调用容器中的各个valve
                         request, response);
             }
             if (request.isAsync()) {
