@@ -14,8 +14,12 @@ class Tomcat {
 ## 1.2 Tomcat中如何部署应用
 
 部署war包：  
-org.apache.catalina.startup.HostConfig#deployApps  
-org.apache.catalina.startup.HostConfig#deployWARs  
+```java
+/**
+@see org.apache.catalina.startup.HostConfig#deployApps  
+@see org.apache.catalina.startup.HostConfig#deployWARs
+**/
+```
 
 ## 1.3 Tomcat中的4个容器：
 
@@ -66,28 +70,36 @@ Pipeline {
 }
 ```
 
-org.apache.catalina.core.StandardWrapper中，存储单个Servlet类型的实例、实例池：  
+StandardWrapper中，存储单个Servlet类型的实例、实例池：  
 ```java
-/**
- * The fully qualified servlet class name for this servlet.
- */
-protected String servletClass = null;
-/**
- * The (single) possibly uninitialized instance of this servlet.
- */
-protected volatile Servlet instance = null;
-/**
- * Stack containing the STM instances.
- */
-protected Stack<Servlet> instancePool = null;
-/**
- * Does this servlet implement the SingleThreadModel interface?
- */
-protected volatile boolean singleThreadModel = false;
-/**
- * Maximum number of STM instances.
- */
-protected int maxInstances = 20;
+/**@see org.apache.catalina.core.StandardWrapper**/
+public class StandardWrapper {
+
+    /**
+     * The fully qualified servlet class name for this servlet.
+     */
+    protected String servletClass = null;
+    
+    /**
+     * The (single) possibly uninitialized instance of this servlet.
+     */
+    protected volatile Servlet instance = null;
+    
+    /**
+     * Stack containing the STM instances.
+     */
+    protected Stack<Servlet> instancePool = null;
+    
+    /**
+     * Does this servlet implement the SingleThreadModel interface?
+     */
+    protected volatile boolean singleThreadModel = false;
+    
+    /**
+     * Maximum number of STM instances.
+     */
+    protected int maxInstances = 20;
+}
 ```
 
 
@@ -98,6 +110,9 @@ protected int maxInstances = 20;
 
 StandardWrapper构造函数中，创建了StandardWrapperValve：  
 ```java
+/**
+@see org.apache.catalina.core.StandardWrapper#StandardWrapper
+
 public StandardWrapper() {
 
     super();
@@ -106,7 +121,8 @@ public StandardWrapper() {
     broadcaster = new NotificationBroadcasterSupport();
 
 }
-```  
+**/
+```
 
 ## 1.4 架构图
 
@@ -116,9 +132,12 @@ public StandardWrapper() {
 
 ## 2.1 HttpServletRequest的实现
 
-org.apache.catalina.connector.RequestFacade 使用门面模式，实现Servlet规范，暴露给外部使用
-org.apache.catalina.connector.Request 内部真正的实现
-  
+```java
+/**
+@see org.apache.catalina.connector.RequestFacade 使用门面模式，实现Servlet规范，暴露给外部使用
+@see org.apache.catalina.connector.Request 内部真正的实现
+**/
+```
 
 ## 2.2 处理请求
 
@@ -132,9 +151,9 @@ Tomcat：
  2. tomcat connector接收线程接收请求，并根据http协议解析该次请求；
  3. tomcat 通过解析的http报文，初始化org.apache.coyote.Request，并实例化org.apache.coyote.Response;
  4. 经装饰模式转化为servlet api对应的HttpServletRequest与HttpServletResponse;
- 5. 经tomcat的层层容器engine,host,context最终到过我们所写的业务servlet的service方法；
- 6. 业务方法service,处理相关的业务逻辑,写入相应的响应的至response，并返回tomcat的容器组件；
- 7. tomcat该处理线程关闭响应流Response并将响应内容返回客户端;
+ 5. 经tomcat的层层容器engine、host、context最终到过我们所写的业务servlet的service方法；
+ 6. 业务方法service，处理相关的业务逻辑，写入相应的响应的至response，并返回tomcat的容器组件；
+ 7. tomcat该处理线程关闭响应流Response，并将响应内容返回客户端;
  8. tomcat该处理线程被释放，然后用于下次请求的处理;
 
 
@@ -143,102 +162,133 @@ IO模型：NIO、BIO(tomcat9不再支持)
 Connector从Socket中取数据，再根据HTTP协议构造Request对象 
 
 创建协议  
-org.apache.catalina.connector.Connector#Connector(java.lang.String)  
-org.apache.coyote.ProtocolHandler#create  
+```java
+/**
+@see org.apache.catalina.connector.Connector#Connector(java.lang.String)  
+@see org.apache.coyote.ProtocolHandler#create  
+**/
+```
 
-代表HTTP1.1协议，使用NIO模型  
-org.apache.coyote.http11.Http11NioProtocol  
+org.apache.coyote.http11.Http11NioProtocol 代表HTTP1.1协议，使用NIO模型
  
 ### 2.2.1 启动HTTP服务，绑定端口 
 
-org.apache.catalina.startup.Bootstrap#load  
-org.apache.catalina.startup.Catalina#load  
-org.apache.catalina.util.LifecycleBase#init   
-org.apache.catalina.core.StandardServer#initInternal  
-org.apache.catalina.connector.Connector#initInternal  
-org.apache.coyote.AbstractProtocol#init  
-org.apache.tomcat.util.net.AbstractEndpoint#init  
-org.apache.tomcat.util.net.NioEndpoint#bind   
+```java
+/**
+@see org.apache.catalina.startup.Bootstrap#load  
+@see org.apache.catalina.startup.Catalina#load  
+@see org.apache.catalina.util.LifecycleBase#init   
+@see org.apache.catalina.core.StandardServer#initInternal  
+@see org.apache.catalina.connector.Connector#initInternal  
+@see org.apache.coyote.AbstractProtocol#init  
+@see org.apache.tomcat.util.net.AbstractEndpoint#init  
+@see org.apache.tomcat.util.net.NioEndpoint#bind   
 
 绑定8080端口  
-org.apache.tomcat.util.net.NioEndpoint#initServerSocket   
-```java
+@see org.apache.tomcat.util.net.NioEndpoint#initServerSocket  
+
 ServerSocketChannel serverSock = ServerSocketChannel.open();
-SocketProperties socketProperties.setProperties(serverSock.socket());
+socketProperties.setProperties(serverSock.socket());
 InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset());
 serverSock.socket().bind(addr,getAcceptCount());
-```
 
+**/
+```
 
 ### 2.2.2 启动HTTP服务，监听请求
 
-org.apache.catalina.startup.Bootstrap#start  
-org.apache.catalina.startup.Catalina#start  
-org.apache.catalina.core.StandardServer#startInternal  
-org.apache.coyote.AbstractProtocol#start  
-org.apache.tomcat.util.net.NioEndpoint#startInternal  
+```java
+/**
+@see org.apache.catalina.startup.Bootstrap#start  
+@see org.apache.catalina.startup.Catalina#start  
+@see org.apache.catalina.core.StandardServer#startInternal  
+@see org.apache.coyote.AbstractProtocol#start  
+@see org.apache.tomcat.util.net.NioEndpoint#startInternal  
 
 其中，启动两个线程    
-org.apache.tomcat.util.net.NioEndpoint#Poller.run  
-org.apache.tomcat.util.net.Acceptor#run  
+@see org.apache.tomcat.util.net.NioEndpoint.Poller#run  
+@see org.apache.tomcat.util.net.Acceptor#run  
+**/
+```
 
 #### A. 监听Socket
 
-侦听对此套接字的连接并接受它，该方法将阻塞，直到建立连接  
-org.apache.tomcat.util.net.Acceptor#run  
-org.apache.tomcat.util.net.NioEndpoint#serverSocketAccept  
+侦听对此套接字的连接并接受它。该方法将阻塞，直到建立连接：
 ```java
+/**
+@see org.apache.tomcat.util.net.Acceptor#run  
+@see org.apache.tomcat.util.net.NioEndpoint#serverSocketAccept  
+
 SocketChannel socket = serverSock.accept();
+
+**/
 ```
 
 #### B. 轮询Channel  
 
-org.apache.tomcat.util.net.NioEndpoint#Poller.run  
 ```java
+/**
+@see org.apache.tomcat.util.net.NioEndpoint.Poller#run  
+
 int keyCount = selector.select(selectorTimeout);
-Iterator<SelectionKey> iterator = keyCount > 0 ? selector.selectedKeys().iterator() : null;
-```
-
-### 2.2.3 接收请求
-
-建立连接  
-org.apache.tomcat.util.net.Acceptor#run  
-```java
-SocketChannel socket = serverSock.accept();
-```
-
-org.apache.tomcat.util.net.NioEndpoint#setSocketOptions  
-org.apache.tomcat.util.net.NioEndpoint#Poller.register  
-
-处理Socket读写   
-org.apache.tomcat.util.net.NioEndpoint#Poller.run  
-```java
 Iterator<SelectionKey> iterator = keyCount > 0 ? selector.selectedKeys().iterator() : null;
 SelectionKey sk = iterator.next();
 NioSocketWrapper socketWrapper = (NioSocketWrapper) sk.attachment();
 processKey(sk, socketWrapper);
+
+**/
 ```
-org.apache.tomcat.util.net.NioEndpoint#Poller.processKey  
-org.apache.tomcat.util.net.AbstractEndpoint#processSocket  
+
+### 2.2.3 接收请求
+
+建立连接后，处理Socket读写   
+```java
+/**
+@see org.apache.tomcat.util.net.NioEndpoint.Poller#processKey  
+@see org.apache.tomcat.util.net.AbstractEndpoint#processSocket  
+**/
+```
+
+- 重要代码 
 
 在线程池中，从Socket中读取数据  
-org.apache.tomcat.util.net.NioEndpoint#SocketProcessor.doRun  
-org.apache.coyote.AbstractProtocol#ConnectionHandler.process  
-org.apache.coyote.AbstractProcessorLight#process  
+```java
+/**
+@see org.apache.tomcat.util.net.NioEndpoint.SocketProcessor#doRun  
+@see org.apache.coyote.AbstractProtocol.ConnectionHandler#process  
+@see org.apache.coyote.AbstractProcessorLight#process  
+**/
+```
 
  - 重要代码 
 
 读取HTTP请求行、请求头  
-org.apache.coyote.http11.Http11Processor#service  
+```java
+/**
+@see org.apache.coyote.http11.Http11Processor#service
+
+inputBuffer.parseRequestLine(keptAlive, protocol.getConnectionTimeout(), protocol.getKeepAliveTimeout()); // 解析请求行
+inputBuffer.parseHeaders(); // 解析请求头
+getAdapter().service(request, response);// 将请求传递给Servlet容器
+
+**/
+```
 
 其中将请求传递给Servlet容器：Engine->Host->Context->Wrapper  
-org.apache.catalina.connector.CoyoteAdapter.service
+```java
+/**
+@see org.apache.catalina.connector.CoyoteAdapter#service
+**/
+```
 
  - 重要代码
 
 到达Wrapper容器的最后一个valve，执行servlet实例方法    
-org.apache.catalina.core.StandardWrapperValve.invoke
-
+```java
+/**
+@see org.apache.catalina.core.StandardWrapperValve#invoke
+**/
+```
 
 > Servlet和Filter的执行顺序  
 > https://blog.csdn.net/weixin_43343423/article/details/91194399  
@@ -247,16 +297,20 @@ org.apache.catalina.core.StandardWrapperValve.invoke
 ### 2.2.4 生成Servlet
 
 项目启动的时候，生成servlet实例，后续请求都不会生成实例  
-org.apache.catalina.startup.HostConfig#deployApps()  
-org.apache.catalina.startup.HostConfig#deployDirectories  
-org.apache.catalina.startup.HostConfig#DeployDirectory.run  
-org.apache.catalina.core.StandardHost#addChild  
-org.apache.catalina.core.StandardContext#startInternal  
-org.apache.catalina.core.StandardWrapper#load  
-org.apache.catalina.core.StandardWrapper#loadServlet  
 ```java
+/**
+@see org.apache.catalina.startup.HostConfig#deployApps()  
+@see org.apache.catalina.startup.HostConfig#deployDirectories  
+@see org.apache.catalina.startup.HostConfig#DeployDirectory.run  
+@see org.apache.catalina.core.StandardHost#addChild  
+@see org.apache.catalina.core.StandardContext#startInternal  
+@see org.apache.catalina.core.StandardWrapper#load  
+@see org.apache.catalina.core.StandardWrapper#loadServlet  
+
 Servlet servlet = (Servlet) instanceManager.newInstance(servletClass);// 创建实例
 initServlet(servlet);// 调用Servlet.init方法
+
+**/
 ```
 
 ### 2.2.5 Tomcat如何维护请求地址与Servlet类的映射关系？
@@ -278,8 +332,10 @@ initServlet(servlet);// 调用Servlet.init方法
 #### A.请求在容器中的传递
 
 为请求设置容器，并依次执行各个容器  
-org.apache.catalina.connector.CoyoteAdapter.service
 ```java
+/**
+@see org.apache.catalina.connector.CoyoteAdapter#service
+
 boolean postParseSuccess = false;
 // Parse and set Catalina and configuration specific request parameters
 // 前置处理请求，为请求设置对应的host、context、wrapper容器
@@ -287,30 +343,37 @@ postParseSuccess = postParseRequest(req, request, res, response);
 // Calling the container 
 // 取得Engine容器，依次执行它的valve
 connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
+
+**/
 ```
 
-org.apache.catalina.core.StandardEngineValve#invoke  
+经历各个pipeline的valve
 ```java
+/**
+@see org.apache.catalina.core.StandardEngineValve#invoke  
+
 // Select the Host to be used for this Request
 Host host = request.getHost();
 // Ask this Host to process this request
 host.getPipeline().getFirst().invoke(request, response);
-```
 
-org.apache.catalina.core.StandardHostValve#invoke  
-```java
+
+@see org.apache.catalina.core.StandardHostValve#invoke  
+
 // Select the Context to be used for this Request
 Context context = request.getContext();
 context.getPipeline().getFirst().invoke(request, response);
-```
 
-最终将请求传递给Wrapper  
-org.apache.catalina.core.StandardContextValve#invoke  
-```java
+
+@see org.apache.catalina.core.StandardContextValve#invoke  
+
 // Select the Wrapper to be used for this Request 
+// 最终将请求传递给Wrapper  
 Wrapper wrapper = request.getWrapper();
 // 从Wrapper的pipeline中取出第一个valve，将请求传递过去
 wrapper.getPipeline().getFirst().invoke(request, response);
+
+**/
 ```
 
 #### B.具体是什么时候在Request对象中设置容器的呢？  
@@ -363,9 +426,11 @@ Tomcat6的类加载体系结构如下：
 java.net.URLClassLoader作用在于，可以通过URL资源地址，去加载指定路径下的类文件。  
 
 
-初始化Tomcat自身的类加载器：  
-org.apache.catalina.startup.Bootstrap.initClassLoaders  
+初始化Tomcat自身的类加载器： 
 ```java
+/**
+@see org.apache.catalina.startup.Bootstrap#initClassLoaders  
+
 ClassLoader commonLoader = null;
 ClassLoader catalinaLoader = null;
 ClassLoader sharedLoader = null;
@@ -385,12 +450,27 @@ private void initClassLoaders() {
         System.exit(1);
     }
 }
+
+**/
 ```
 
 自定义webapp类加载器：  
 org.apache.catalina.loader.WebappClassLoader  
-具体实现：  
-org.apache.catalina.loader.WebappClassLoaderBase#loadClass  
+
+具体实现：
+```java
+/**
+@see org.apache.catalina.loader.WebappClassLoaderBase#loadClass(java.lang.String, boolean) 
+
+1. 先检查该类是否已经被webapp类加载器加载过
+2. 尝试通过系统类加载器（AppClassLoader）加载类，避免webapp重写JDK中的类。即双亲委派
+3. 判断是否委派给父类加载器加载
+4. 使用webApp类加载器，自行加载
+5. 如果webApp应用内部没有加载到该类，且父类加载器没有加载过该类，则无条件委托给父类加载器加载
+6. 最终还是加载不到该类，则抛出异常
+
+**/
+```
 
 ## 3.3 热部署
 
@@ -411,15 +491,23 @@ https://www.cnblogs.com/Marydon20170307/p/7141784.html
 注意，增加类文件不会立即触发重新加载，因为类加载是按需加载？   
 
 热加载实现：  
-org.apache.catalina.loader.WebappLoader#backgroundProcess  
-org.apache.catalina.loader.WebappClassLoaderBase#modified   
+```java
+/**
+@see org.apache.catalina.loader.WebappLoader#backgroundProcess  
+@see org.apache.catalina.loader.WebappClassLoaderBase#modified   
+**/
+```
 
 热加载，需要想办法将旧的class对象，从jvm中卸载掉。  
 把用到旧class对象的线程停掉，触发jvm执行垃圾回收。但是很难被回收，结果会导致jvm中的对象越来越多。  
 
 ## 3.5 JSP热加载
 
-org.apache.jasper.servlet.JspServletWrapper.service
+```java
+/**
+@see org.apache.jasper.servlet.JspServletWrapper#service
+**/
+```
 
 1. 根据url地址，定位jsp文件，编译成class文件  
 org.apache.jasper.JspCompilationContext.compile
