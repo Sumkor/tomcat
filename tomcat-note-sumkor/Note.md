@@ -319,6 +319,7 @@ initServlet(servlet);// 调用Servlet.init方法
 
 在web.xml文件中配置Servlet与请求地址的映射关系：  
 ```xml
+<web-app>
   <servlet>
     <servlet-name>ServletDemo</servlet-name>
     <servlet-class>servlet.ServletDemo</servlet-class>
@@ -327,6 +328,7 @@ initServlet(servlet);// 调用Servlet.init方法
     <servlet-name>ServletDemo</servlet-name>
     <url-pattern>/servlet/ServletDemo</url-pattern>
   </servlet-mapping>
+</web-app>
 ```
 
 #### A.请求在容器中的传递
@@ -534,20 +536,42 @@ org.apache.jasper.servlet.JspServletWrapper.getServlet
 
 ### 4.1.1 如何使用异步
 
-总体思想是，将request、response对象设置在上下文AsyncContext之中，并通过上下文传递给子线程，由子线程去执行耗时任务。    
-```java
+```code
 AsyncContext asyncContext = req.startAsync();
 asyncContext.start(new Runnable(){...})// 另启线程执行任务
 ```
-org.apache.catalina.connector.Request.startAsync  
-org.apache.catalina.core.AsyncContextImpl.start  
+
+总体思想是，将request、response对象设置在上下文AsyncContext之中，并通过上下文传递给子线程，由子线程去执行耗时任务。    
+
 ```java
+/**
+@see org.apache.catalina.connector.Request#startAsync()
+@see org.apache.catalina.core.AsyncContextImpl#start  
+
 public void start(final Runnable run) {
     check();
     Runnable wrapper = new RunnableWrapper(run, context, this.request.getCoyoteRequest());
     this.request.getCoyoteRequest().action(ActionCode.ASYNC_RUN, wrapper);
 }
+
+
+@see org.apache.coyote.AbstractProcessor#action
+
+case ASYNC_RUN: {
+    asyncStateMachine.asyncRun((Runnable) param);
+    break;
+}
+
+
+@see org.apache.coyote.AsyncStateMachine#asyncRun
+
+processor.execute(runnable);
+
+**/
 ```
+
+Tomcat使用线程池配置高并发连接  
+https://www.cnblogs.com/chengssblog/p/6635211.html
 
 tomcat结合servlet3异步化的整体请求处理过程大致如下：
 
@@ -569,17 +593,20 @@ tomcat结合servlet3异步化的整体请求处理过程大致如下：
 
 ### 4.1.2 子线程执行完成后的处理
   
-```java
+```code
 asyncContext.complete();// 设置任务执行完成状态
 ```
 
-org.apache.catalina.core.AsyncContextImpl#complete
+设置任务执行完成状态，这里最终会调用AbstractEndpoint的processSocket方法，EndPoint是用来接受和处理请求的。 
 ```java
-request.getCoyoteRequest().action(ActionCode.ASYNC_COMPLETE, null);
-```
+/**
+@see org.apache.catalina.core.AsyncContextImpl#complete
 
-org.apache.coyote.AbstractProcessor#action
-```java
+request.getCoyoteRequest().action(ActionCode.ASYNC_COMPLETE, null);
+
+
+@see org.apache.coyote.AbstractProcessor#action
+
 case ASYNC_COMPLETE: {
     clearDispatches();
     if (asyncStateMachine.asyncComplete()) {
@@ -587,14 +614,26 @@ case ASYNC_COMPLETE: {
     }
     break;
 }
+
+
+@see org.apache.tomcat.util.net.AbstractEndpoint#processSocket  
+
+SocketProcessorBase<S> sc = processorCache.pop();
+Executor executor = getExecutor();
+if (dispatch && executor != null) {
+    executor.execute(sc);// 在线程池中处理Socket
+}
+
+**/
 ```
 
-org.apache.tomcat.util.net.AbstractEndpoint#processSocket  
-这里最终会调用AbstractEndpoint的processSocket方法，EndPoint是用来接受和处理请求的。  
 接下来就会交给Processor去进行协议处理。  
-
-org.apache.coyote.AbstractProcessorLight#process  
+这部分是重点，AbstractProcessorLight会根据SocketEvent的状态来判断调用逻辑。  
+因为当前请求是执行完成后调用的，肯定不能调用service方法进容器了，不然就是死循环了，这里通过isAsync()判断，就会进入dispatch(status)。
 ```java
+/**
+@see org.apache.coyote.AbstractProcessorLight#process  
+
 else if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
     state = dispatch(status); // 处理异步请求，即通过asyncContext.complete()会执行到这里
     state = checkForPipelinedData(state, socketWrapper);
@@ -608,22 +647,28 @@ else if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
 if (isAsync()) {
     state = asyncPostProcess();// 处理异步流程，比如调用监听子线程的listener方法
 }
-```
-这部分是重点，AbstractProcessorLight会根据SocketEvent的状态来判断调用逻辑。  
-因为当前请求是执行完成后调用的，肯定不能调用service方法进容器了，不然就是死循环了，这里通过isAsync()判断，就会进入dispatch(status)。  
 
-org.apache.catalina.connector.CoyoteAdapter#asyncDispatch  
+**/
+```
+  
+最终会调用CoyoteAdapter的asyncDispatch方法，完成了数据的输出，最终输出到浏览器。  
 ```java
+/**
+@see org.apache.catalina.connector.CoyoteAdapter#asyncDispatch  
+
 if (!request.isAsyncDispatching() && request.isAsync()) {
     res.onWritePossible(); // 这里执行浏览器响应，写入数据
 }
+
+**/
 ```
-最终会调用CoyoteAdapter的asyncDispatch方法，完成了数据的输出，最终输出到浏览器。  
 
-这里有同学可能会说，我知道异步执行完后，调用ctx.complete()会输出到浏览器，但是，第一次doGet请求执行完成后，Tomcat是怎么知道不用返回到客户端的呢？关键代码在CoyoteAdapter中的service方法，部分代码如下：  
-
-org.apache.catalina.connector.CoyoteAdapter#service
+这里有同学可能会说，我知道异步执行完后，调用ctx.complete()会输出到浏览器，但是，第一次doGet请求执行完成后，Tomcat是怎么知道不用返回到客户端的呢？   
+关键代码在CoyoteAdapter中的service方法，部分代码如下：  
 ```java
+/**
+@see org.apache.catalina.connector.CoyoteAdapter#service
+
 // 前置处理请求，为请求设置对应的host、context、wrapper容器
 postParseSuccess = postParseRequest(req, request, res, response);
 //省略部分代码
@@ -644,41 +689,47 @@ if (!async) {
     request.recycle();
     response.recycle();
 }
+
+**/
 ```
 
-这部分代码在调用完 Servlet 后，会通过 request.isAsync() 来判断是否是异步请求，如果是异步请求，就设置 async = true 。如果是非异步请求就执行输出数据到客户端逻辑，同时销毁 request 和 response 。这里就完成了请求结束后不响应客户端的操作。
+这部分代码在调用完 Servlet 后，会通过 request.isAsync() 来判断是否是异步请求，如果是异步请求，就设置 async = true 。  
+如果是非异步请求就执行输出数据到客户端逻辑，同时销毁 request 和 response 。这里就完成了请求结束后不响应客户端的操作。
 
 来源：https://my.oschina.net/luozhou/blog/3116782
 
 ### 4.1.3 监听异步处理结果
 
 给asyncContext添加监听器：  
-```java
+```code
 asyncContext.addListener(new AsyncListener(){...})
 ```
 
 调用链：  
-org.apache.coyote.AbstractProtocol#ConnectionHandler.process   
-org.apache.coyote.AbstractProcessorLight#process  
 ```java
+/**
+@see org.apache.coyote.AbstractProtocol.ConnectionHandler#process   
+@see org.apache.coyote.AbstractProcessorLight#process  
+
 if (isAsync()) {
     state = asyncPostProcess();// 处理异步流程，比如监听子线程的执行情况
-    if (getLog().isDebugEnabled()) {
-        getLog().debug("Socket: [" + socketWrapper +
-                "], State after async post processing: [" + state + "]");
-    }
 }
-```
-org.apache.coyote.AsyncStateMachine.asyncPostProcess  
-```java
+
+
+@see org.apache.coyote.AsyncStateMachine#asyncPostProcess  
+
 if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
     asyncCtxt.fireOnComplete();// 监听到子线程执行完毕了，调用listener.complete方法
     state = AsyncState.DISPATCHED;
     return SocketState.ASYNC_END;
 }
+
+
+@see org.apache.catalina.core.AsyncContextImpl#fireOnComplete  
+@see org.apache.catalina.core.AsyncListenerWrapper#fireOnComplete  
+
+**/
 ```
-org.apache.catalina.core.AsyncContextImpl.fireOnComplete  
-org.apache.catalina.core.AsyncListenerWrapper.fireOnComplete  
 
 ### 4.1.4 聊聊异步Servlet的使用场景
 
