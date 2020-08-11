@@ -16,19 +16,6 @@
  */
 package org.apache.catalina.connector;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.EnumSet;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.servlet.ReadListener;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletException;
-import javax.servlet.SessionTrackingMode;
-import javax.servlet.WriteListener;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.catalina.Authenticator;
 import org.apache.catalina.Context;
 import org.apache.catalina.Host;
@@ -52,6 +39,14 @@ import org.apache.tomcat.util.http.ServerCookies;
 import org.apache.tomcat.util.net.SSLSupport;
 import org.apache.tomcat.util.net.SocketEvent;
 import org.apache.tomcat.util.res.StringManager;
+
+import javax.servlet.*;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -304,7 +299,7 @@ public class CoyoteAdapter implements Adapter {
         Response response = (Response) res.getNote(ADAPTER_NOTES);
 
         if (request == null) {
-            // Create objects
+            // Create objects // 构造org.apache.catalina.connector.Request，并将org.apache.coyote.Request设置为它的属性
             request = connector.createRequest();
             request.setCoyoteRequest(req);
             response = connector.createResponse();
@@ -334,7 +329,7 @@ public class CoyoteAdapter implements Adapter {
         try {
             // Parse and set Catalina and configuration specific
             // request parameters
-            postParseSuccess = postParseRequest(req, request, res, response); // 前置处理请求，为请求设置对应的host、context、wrapper容器
+            postParseSuccess = postParseRequest(req, request, res, response); // 前置处理请求，为请求org.apache.catalina.connector.Request设置对应的host、context、wrapper容器
             if (postParseSuccess) {
                 //check valves if we support async
                 request.setAsyncSupported(
@@ -343,7 +338,7 @@ public class CoyoteAdapter implements Adapter {
                 connector.getService().getContainer().getPipeline().getFirst().invoke( // 通过pipeline调用容器中的各个valve
                         request, response);
             }
-            if (request.isAsync()) {
+            if (request.isAsync()) { // 如果是异步请求，不关闭响应流
                 async = true;
                 ReadListener readListener = req.getReadListener();
                 if (readListener != null && request.isFinished()) {

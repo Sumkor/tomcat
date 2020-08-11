@@ -263,6 +263,7 @@ processKey(sk, socketWrapper);
  - 重要代码 
 
 读取HTTP请求行、请求头  
+注意，处理协议的时候，用的请求对象是org.apache.coyote.Request
 ```java
 /**
 @see org.apache.coyote.http11.Http11Processor#service
@@ -274,7 +275,10 @@ getAdapter().service(request, response);// 将请求传递给Servlet容器
 **/
 ```
 
+ - 重要代码 
+
 其中将请求传递给Servlet容器：Engine->Host->Context->Wrapper  
+注意，这里会将请求对象由org.apache.coyote.Request转换为org.apache.catalina.connector.Request
 ```java
 /**
 @see org.apache.catalina.connector.CoyoteAdapter#service
@@ -284,11 +288,15 @@ getAdapter().service(request, response);// 将请求传递给Servlet容器
  - 重要代码
 
 到达Wrapper容器的最后一个valve，执行servlet实例方法    
+注意，这里调用servlet过滤器链的时候，将请求对象由org.apache.catalina.connector.Request转换为org.apache.catalina.connector.RequestFacade
 ```java
 /**
 @see org.apache.catalina.core.StandardWrapperValve#invoke
+@see org.apache.catalina.core.ApplicationFilterChain#doFilter
 **/
 ```
+
+> 注：重要代码在下文中会继续讲解到。
 
 > Servlet和Filter的执行顺序  
 > https://blog.csdn.net/weixin_43343423/article/details/91194399  
@@ -333,16 +341,15 @@ initServlet(servlet);// 调用Servlet.init方法
 
 #### A.请求在容器中的传递
 
-为请求设置容器，并依次执行各个容器  
+为请求设置容器，并依次执行各个容器。  
+注意，这里处理了 org.apache.catalina.connector.Request 和 org.apache.coyote.Request 之间的转换关系：
 ```java
 /**
 @see org.apache.catalina.connector.CoyoteAdapter#service
 
 boolean postParseSuccess = false;
-// Parse and set Catalina and configuration specific request parameters
-// 前置处理请求，为请求设置对应的host、context、wrapper容器
+// 前置处理请求，为请求org.apache.catalina.connector.Request设置对应的host、context、wrapper容器
 postParseSuccess = postParseRequest(req, request, res, response);
-// Calling the container 
 // 取得Engine容器，依次执行它的valve
 connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
 
@@ -380,161 +387,34 @@ wrapper.getPipeline().getFirst().invoke(request, response);
 
 #### B.具体是什么时候在Request对象中设置容器的呢？  
 
+```java
+/**
 在处理请求的时候，将请求交给容器之前，首先为请求设置容器对象：  
-org.apache.coyote.http11.Http11Processor#service  
-org.apache.catalina.connector.CoyoteAdapter#service  
-org.apache.catalina.connector.CoyoteAdapter#postParseRequest  
+@see org.apache.coyote.http11.Http11Processor#service  
+@see org.apache.catalina.connector.CoyoteAdapter#service  
+@see org.apache.catalina.connector.CoyoteAdapter#postParseRequest  
+
 为请求设置Host、Context容器：  
-org.apache.catalina.mapper.Mapper#internalMap  
+@see org.apache.catalina.mapper.Mapper#internalMap  
+
 为请求设置Wrapper容器（通过请求路径匹配）：  
-org.apache.catalina.mapper.Mapper#internalMapWrapper   
-org.apache.catalina.mapper.Mapper#internalMapExactWrapper  
-
-# 3. Tomcat自定义类加载器
-
-来源：https://www.bilibili.com/video/BV11g4y1q7fb
-
-## 3.1 类加载过程：
-
-1. 加载class文件到JVM（染色体）
-2. 校验
-3. 准备（Java内存模型）（申请肚子）
-4. 解析（接口、方法、字段）
-5. 初始化（静态变量、静态方法块）
-6. 使用（new对象）
-7. 销毁
-
-## 3.2 类加载器
-
-为每个应用生成不同的WebappClassLoader实例 
-
-Tomcat平台 -----> commonClassLoader   
-应用A:com.sumkor.Test -----> WebappClassLoader  
-应用B:com.sumkor.Test -----> WebappClassLoader  
- 
-Tomcat5的类加载体系结构如下：
-
-![tomcat5类加载器](./tomcat5类加载器.jpg)
-
-Tomcat6的类加载体系结构如下：
-
-![tomcat6类加载器](./tomcat6类加载器.jpg)
-
-《深入理解Java虚拟机》  
-9.2.1　Tomcat：正统的类加载器架构  
-所以Tomcat 6之后也顺理成章地把/common、/server和/shared这3个目录默认合并到一起变成1个/lib目录，这个目录里的类库
-相当于以前/common目录中类库的作用  
-
-java.net.URLClassLoader作用在于，可以通过URL资源地址，去加载指定路径下的类文件。  
-
-
-初始化Tomcat自身的类加载器： 
-```java
-/**
-@see org.apache.catalina.startup.Bootstrap#initClassLoaders  
-
-ClassLoader commonLoader = null;
-ClassLoader catalinaLoader = null;
-ClassLoader sharedLoader = null;
-
-private void initClassLoaders() {
-    try {
-        commonLoader = createClassLoader("common", null);
-        if (commonLoader == null) {
-            // no config file, default to this loader - we might be in a 'single' env.
-            commonLoader = this.getClass().getClassLoader();
-        }
-        catalinaLoader = createClassLoader("server", commonLoader);
-        sharedLoader = createClassLoader("shared", commonLoader);
-    } catch (Throwable t) {
-        handleThrowable(t);
-        log.error("Class loader creation threw exception", t);
-        System.exit(1);
-    }
-}
-
+@see org.apache.catalina.mapper.Mapper#internalMapWrapper   
+@see org.apache.catalina.mapper.Mapper#internalMapExactWrapper  
 **/
 ```
 
-自定义webapp类加载器：  
-org.apache.catalina.loader.WebappClassLoader  
 
-具体实现：
-```java
-/**
-@see org.apache.catalina.loader.WebappClassLoaderBase#loadClass(java.lang.String, boolean) 
+# 3. Servlet
 
-1. 先检查该类是否已经被webapp类加载器加载过
-2. 尝试通过系统类加载器（AppClassLoader）加载类，避免webapp重写JDK中的类。即双亲委派
-3. 判断是否委派给父类加载器加载
-4. 使用webApp类加载器，自行加载
-5. 如果webApp应用内部没有加载到该类，且父类加载器没有加载过该类，则无条件委托给父类加载器加载
-6. 最终还是加载不到该类，则抛出异常
-
-**/
-```
-
-## 3.3 热部署
-
-主体：Host  
-配置：server.xml的Host标签配置autoDeploy="true"  
-触发条件：在webapp目录下放入新的web应用，或者在webapp目录下移除web项目，或者修改了Context的属性？      
-结果，触发Host重新部署或取消部署Context  
-
-https://www.cnblogs.com/Marydon20170307/p/7141784.html
-
-## 3.4 热加载
-
-主体：Context   
-配置：server.xml的Context标签的reloadable为true
-触发条件：WEB-INF目录下类文件的修改时间有变动，或者jar文件增加、修改、删除    
-结果：触发Context重新加载类  
-
-注意，增加类文件不会立即触发重新加载，因为类加载是按需加载？   
-
-热加载实现：  
-```java
-/**
-@see org.apache.catalina.loader.WebappLoader#backgroundProcess  
-@see org.apache.catalina.loader.WebappClassLoaderBase#modified   
-**/
-```
-
-热加载，需要想办法将旧的class对象，从jvm中卸载掉。  
-把用到旧class对象的线程停掉，触发jvm执行垃圾回收。但是很难被回收，结果会导致jvm中的对象越来越多。  
-
-## 3.5 JSP热加载
-
-```java
-/**
-@see org.apache.jasper.servlet.JspServletWrapper#service
-**/
-```
-
-1. 根据url地址，定位jsp文件，编译成class文件  
-org.apache.jasper.JspCompilationContext.compile
-2. 重新加载class文件（卸载旧的类加载器，使用新的类加载器来加载）  
-org.apache.jasper.servlet.JspServletWrapper.getServlet
-3. 使用新的Servlet来处理请求
-
-![jsp热加载](./jsp热加载.png)
-
-来源：https://www.bilibili.com/video/BV16W411A7wE?p=5
-
-# embed
-
-
-# 4. Servlet
-
-## 4.1 servlet生命周期
+## 3.1 servlet生命周期
 
 ![servlet生命周期](./servlet生命周期.png)
 
 来源：https://www.bilibili.com/video/BV13E41137Bv
 
-## 4.2 异步处理请求
+## 3.2 异步处理请求
 
-### 4.1.1 如何使用异步
+### 3.1.1 如何使用异步
 
 ```code
 AsyncContext asyncContext = req.startAsync();
@@ -591,7 +471,7 @@ tomcat结合servlet3异步化的整体请求处理过程大致如下：
 
 来源：https://blog.csdn.net/zhurhyme/article/details/76228836
 
-### 4.1.2 子线程执行完成后的处理
+### 3.1.2 子线程执行完成后的处理
   
 ```code
 asyncContext.complete();// 设置任务执行完成状态
@@ -669,14 +549,6 @@ if (!request.isAsyncDispatching() && request.isAsync()) {
 /**
 @see org.apache.catalina.connector.CoyoteAdapter#service
 
-// 前置处理请求，为请求设置对应的host、context、wrapper容器
-postParseSuccess = postParseRequest(req, request, res, response);
-//省略部分代码
-if (postParseSuccess) {
-    request.setAsyncSupported(connector.getService().getContainer().getPipeline().isAsyncSupported());
-    // 通过pipeline调用容器中的各个valve
-    connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
-}
 if (request.isAsync()) {
     async = true;
 } else {
@@ -698,7 +570,7 @@ if (!async) {
 
 来源：https://my.oschina.net/luozhou/blog/3116782
 
-### 4.1.3 监听异步处理结果
+### 3.1.3 监听异步处理结果
 
 给asyncContext添加监听器：  
 ```code
@@ -731,10 +603,145 @@ if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
 **/
 ```
 
-### 4.1.4 聊聊异步Servlet的使用场景
+### 3.1.4 聊聊异步Servlet的使用场景
 
 分析了这么多，那么异步Servlet的使用场景有哪些呢？其实我们只要抓住一点就可以分析了，就是异步Servlet提高了系统的吞吐量，可以接受更多的请求。假设web系统中Tomcat的线程不够用了，大量请求在等待，而此时Web系统应用层面的优化已经不能再优化了，也就是无法缩短业务逻辑的响应时间了，这个时候，如果想让减少用户的等待时间，提高吞吐量，可以尝试下使用异步Servlet。
 
 举一个实际的例子：比如做一个短信系统，短信系统对实时性要求很高，所以要求等待时间尽可能短，而发送功能我们实际上是委托运营商去发送的，也就是说我们要调用接口，假设并发量很高，那么这个时候业务系统调用我们的发送短信功能，就有可能把我们的Tomcat线程池用完，剩下的请求就会在队列中等待，那这个时候，短信的延时就上去了，为了解决这个问题，我们可以引入异步Servlet,接受更多的短信发送请求，从而减少短信的延时。
 
 由于涉及线程间的交互，且有超时时间限制，实际运用上，可用消息队列替代。
+
+
+
+# 4. Tomcat自定义类加载器
+
+来源：https://www.bilibili.com/video/BV11g4y1q7fb
+
+## 4.1 类加载过程：
+
+1. 加载class文件到JVM（染色体）
+2. 校验
+3. 准备（Java内存模型）（申请肚子）
+4. 解析（接口、方法、字段）
+5. 初始化（静态变量、静态方法块）
+6. 使用（new对象）
+7. 销毁
+
+## 4.2 类加载器
+
+为每个应用生成不同的WebappClassLoader实例 
+
+Tomcat平台 -----> commonClassLoader   
+应用A:com.sumkor.Test -----> WebappClassLoader  
+应用B:com.sumkor.Test -----> WebappClassLoader  
+ 
+Tomcat5的类加载体系结构如下：
+
+![tomcat5类加载器](./tomcat5类加载器.jpg)
+
+Tomcat6的类加载体系结构如下：
+
+![tomcat6类加载器](./tomcat6类加载器.jpg)
+
+《深入理解Java虚拟机》  
+9.2.1　Tomcat：正统的类加载器架构  
+所以Tomcat 6之后也顺理成章地把/common、/server和/shared这3个目录默认合并到一起变成1个/lib目录，这个目录里的类库
+相当于以前/common目录中类库的作用  
+
+java.net.URLClassLoader作用在于，可以通过URL资源地址，去加载指定路径下的类文件。  
+
+
+初始化Tomcat自身的类加载器： 
+```java
+/**
+@see org.apache.catalina.startup.Bootstrap#initClassLoaders  
+
+ClassLoader commonLoader = null;
+ClassLoader catalinaLoader = null;
+ClassLoader sharedLoader = null;
+
+private void initClassLoaders() {
+    try {
+        commonLoader = createClassLoader("common", null);
+        if (commonLoader == null) {
+            // no config file, default to this loader - we might be in a 'single' env.
+            commonLoader = this.getClass().getClassLoader();
+        }
+        catalinaLoader = createClassLoader("server", commonLoader);
+        sharedLoader = createClassLoader("shared", commonLoader);
+    } catch (Throwable t) {
+        handleThrowable(t);
+        log.error("Class loader creation threw exception", t);
+        System.exit(1);
+    }
+}
+
+**/
+```
+
+自定义webapp类加载器：  
+org.apache.catalina.loader.WebappClassLoader  
+
+具体实现：
+```java
+/**
+@see org.apache.catalina.loader.WebappClassLoaderBase#loadClass(java.lang.String, boolean) 
+
+1. 先检查该类是否已经被webapp类加载器加载过
+2. 尝试通过系统类加载器（AppClassLoader）加载类，避免webapp重写JDK中的类。即双亲委派
+3. 判断是否委派给父类加载器加载
+4. 使用webApp类加载器，自行加载
+5. 如果webApp应用内部没有加载到该类，且父类加载器没有加载过该类，则无条件委托给父类加载器加载
+6. 最终还是加载不到该类，则抛出异常
+
+**/
+```
+
+## 4.3 热部署
+
+主体：Host  
+配置：server.xml的Host标签配置autoDeploy="true"  
+触发条件：在webapp目录下放入新的web应用，或者在webapp目录下移除web项目，或者修改了Context的属性？      
+结果，触发Host重新部署或取消部署Context  
+
+https://www.cnblogs.com/Marydon20170307/p/7141784.html
+
+## 4.4 热加载
+
+主体：Context   
+配置：server.xml的Context标签的reloadable为true
+触发条件：WEB-INF目录下类文件的修改时间有变动，或者jar文件增加、修改、删除    
+结果：触发Context重新加载类  
+
+注意，增加类文件不会立即触发重新加载，因为类加载是按需加载？   
+
+热加载实现：  
+```java
+/**
+@see org.apache.catalina.loader.WebappLoader#backgroundProcess  
+@see org.apache.catalina.loader.WebappClassLoaderBase#modified   
+**/
+```
+
+热加载，需要想办法将旧的class对象，从jvm中卸载掉。  
+把用到旧class对象的线程停掉，触发jvm执行垃圾回收。但是很难被回收，结果会导致jvm中的对象越来越多。  
+
+## 4.5 JSP热加载
+
+```java
+/**
+@see org.apache.jasper.servlet.JspServletWrapper#service
+**/
+```
+
+1. 根据url地址，定位jsp文件，编译成class文件  
+org.apache.jasper.JspCompilationContext.compile
+2. 重新加载class文件（卸载旧的类加载器，使用新的类加载器来加载）  
+org.apache.jasper.servlet.JspServletWrapper.getServlet
+3. 使用新的Servlet来处理请求
+
+![jsp热加载](./jsp热加载.png)
+
+来源：https://www.bilibili.com/video/BV16W411A7wE?p=5
+
+# embed
