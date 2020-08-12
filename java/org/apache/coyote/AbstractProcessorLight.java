@@ -16,16 +16,16 @@
  */
 package org.apache.coyote;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-
 import org.apache.juli.logging.Log;
 import org.apache.tomcat.util.net.AbstractEndpoint.Handler.SocketState;
 import org.apache.tomcat.util.net.DispatchType;
 import org.apache.tomcat.util.net.SocketEvent;
 import org.apache.tomcat.util.net.SocketWrapperBase;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * This is a light-weight abstract processor implementation that is intended as
@@ -56,7 +56,7 @@ public abstract class AbstractProcessorLight implements Processor {
             } else if (status == SocketEvent.DISCONNECT) {
                 // Do nothing here, just wait for it to get recycled
             } else if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
-                state = dispatch(status);// 处理异步请求，即通过asyncContext.complete()会执行到这里
+                state = dispatch(status);// 处理异步请求，即通过asyncContext.complete()会执行到这里。第一次 isAsync()==true；第二次 isAsync()==false && state==SocketState.ASYNC_END
                 state = checkForPipelinedData(state, socketWrapper);
             } else if (status == SocketEvent.OPEN_WRITE) {
                 // Extra write event likely after async, ignore

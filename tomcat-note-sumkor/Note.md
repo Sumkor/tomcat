@@ -309,7 +309,7 @@ getAdapter().service(request, response);// 将请求传递给Servlet容器
 /**
 @see org.apache.catalina.startup.HostConfig#deployApps()  
 @see org.apache.catalina.startup.HostConfig#deployDirectories  
-@see org.apache.catalina.startup.HostConfig#DeployDirectory.run  
+@see org.apache.catalina.startup.HostConfig.DeployDirectory#run  
 @see org.apache.catalina.core.StandardHost#addChild  
 @see org.apache.catalina.core.StandardContext#startInternal  
 @see org.apache.catalina.core.StandardWrapper#load  
@@ -460,10 +460,10 @@ tomcat结合servlet3异步化的整体请求处理过程大致如下：
  3. tomcat 通过解析的http报文，实例化org.apache.coyote.Request，并实例化org.apache.coyote.Response;
  4. 经装饰模式转化为servlet api对应的HttpServletRequest与HttpServletReponse;
  5. 经tomcat的层层容器engine,host,context最终到过我们所写的业务servlet的service方法；
- 6. 业务方法开启异步化上下文AsynContext;释放tomcat当前处理线程；
+ 6. 业务方法开启异步化上下文AsyncContext;释放tomcat当前处理线程；
  7. tomcat判断当前请求是否开启了异步化，如果开启则不关闭响应流Response，也不进行用户响应的返回;
  8. tomcat该线程被释放，然后用于下次请求的处理，提高其吞吐量;
- 9. 业务方法在AsynContext环境中完成业务方法的处理，调用其complete方法，将响应写回响应流，并关闭响应流，完成此次请求处理.
+ 9. 业务方法在AsyncContext环境中完成业务方法的处理，调用其complete方法，将响应写回响应流，并关闭响应流，完成此次请求处理.
 
 提前释放tomcat的处理线程，是为了让tomcat的线程使用率更高，提高吞吐量；  
 不关闭响应流为的是我们在业务中处理了占用长时间的业务操作之后，自己进行响应流的返回并进行关闭。  
@@ -489,8 +489,8 @@ request.getCoyoteRequest().action(ActionCode.ASYNC_COMPLETE, null);
 
 case ASYNC_COMPLETE: {
     clearDispatches();
-    if (asyncStateMachine.asyncComplete()) {
-        processSocketEvent(SocketEvent.OPEN_READ, true);
+    if (asyncStateMachine.asyncComplete()) { // 状态由 AsyncState.STARTED 转换为 AsyncState.COMPLETING，后续可满足触发AsyncContext.fireOnComplete
+        processSocketEvent(SocketEvent.OPEN_READ, true); // 处理socket
     }
     break;
 }
@@ -517,9 +517,6 @@ if (dispatch && executor != null) {
 else if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
     state = dispatch(status); // 处理异步请求，即通过asyncContext.complete()会执行到这里
     state = checkForPipelinedData(state, socketWrapper);
-} else if (status == SocketEvent.OPEN_WRITE) {
-    // Extra write event likely after async, ignore
-    state = SocketState.LONG;
 } else if (status == SocketEvent.OPEN_READ) {
     state = service(socketWrapper); // 处理同步请求：从Socket中取数据，构建Request对象，调用容器执行Servlet等
 }
@@ -530,80 +527,89 @@ if (isAsync()) {
 
 **/
 ```
-  
-最终会调用CoyoteAdapter的asyncDispatch方法，完成了数据的输出，最终输出到浏览器。  
+注意到AbstractProcessorLight#process之中有个do-while循环，实际上会两次会进入dispatch方法。
+
+
+### 3.1.2 A.第一次进入dispatch  
+
+此时isAsync==true，进入dispatch方法：
 ```java
 /**
-@see org.apache.catalina.connector.CoyoteAdapter#asyncDispatch  
+@see org.apache.coyote.AbstractProcessorLight#process  
 
-if (!request.isAsyncDispatching() && request.isAsync()) {
-    res.onWritePossible(); // 这里执行浏览器响应，写入数据
+if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
+    state = dispatch(status); // 第一次进入这里，并没有处理什么逻辑
+    state = checkForPipelinedData(state, socketWrapper);
 }
 
 **/
 ```
 
-这里有同学可能会说，我知道异步执行完后，调用ctx.complete()会输出到浏览器，但是，第一次doGet请求执行完成后，Tomcat是怎么知道不用返回到客户端的呢？   
-关键代码在CoyoteAdapter中的service方法，部分代码如下：  
-```java
-/**
-@see org.apache.catalina.connector.CoyoteAdapter#service
-
-if (request.isAsync()) {
-    async = true;
-} else {
-    // 输出数据到客户端
-    request.finishRequest();
-    response.finishResponse();
-if (!async) {
-    updateWrapperErrorCount(request, response);
-    // 销毁request和response
-    request.recycle();
-    response.recycle();
-}
-
-**/
-```
-
-这部分代码在调用完 Servlet 后，会通过 request.isAsync() 来判断是否是异步请求，如果是异步请求，就设置 async = true 。  
-如果是非异步请求就执行输出数据到客户端逻辑，同时销毁 request 和 response 。这里就完成了请求结束后不响应客户端的操作。
-
-来源：https://my.oschina.net/luozhou/blog/3116782
-
-### 3.1.3 监听异步处理结果
-
-给asyncContext添加监听器：  
+由于给asyncContext添加监听器：  
 ```code
 asyncContext.addListener(new AsyncListener(){...})
 ```
 
-调用链：  
+因此会调用到监听器：
 ```java
 /**
-@see org.apache.coyote.AbstractProtocol.ConnectionHandler#process   
-@see org.apache.coyote.AbstractProcessorLight#process  
+@see org.apache.coyote.AbstractProcessorLight#process 
 
 if (isAsync()) {
-    state = asyncPostProcess();// 处理异步流程，比如监听子线程的执行情况
+    state = asyncPostProcess();// 处理异步流程，比如调用监听子线程的listener方法
 }
 
 
 @see org.apache.coyote.AsyncStateMachine#asyncPostProcess  
 
-if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
+if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) { // asyncContext.complete 中设置状态
     asyncCtxt.fireOnComplete();// 监听到子线程执行完毕了，调用listener.complete方法
-    state = AsyncState.DISPATCHED;
-    return SocketState.ASYNC_END;
+    state = AsyncState.DISPATCHED;// 这里把request.isAsync设置为false!!!
+    return SocketState.ASYNC_END;// 设置socketState
 }
 
-
+最终调到用户代码：
 @see org.apache.catalina.core.AsyncContextImpl#fireOnComplete  
 @see org.apache.catalina.core.AsyncListenerWrapper#fireOnComplete  
 
 **/
 ```
 
-### 3.1.4 聊聊异步Servlet的使用场景
+### 3.1.2 B.第二次进入dispatch  
+
+此时isAsync==false && state == SocketState.ASYNC_END，进入dispatch方法：
+```java
+/**
+@see org.apache.coyote.AbstractProcessorLight#process  
+
+if (isAsync() || isUpgrade() || state == SocketState.ASYNC_END) {
+    state = dispatch(status); // 第二次进入dispatch，将response写到浏览器
+    state = checkForPipelinedData(state, socketWrapper);
+}
+
+**/
+```
+
+最终会调用CoyoteAdapter的asyncDispatch方法，完成了数据的输出，最终输出到浏览器。  
+```java
+/**
+@see org.apache.catalina.connector.CoyoteAdapter#asyncDispatch  
+
+if (!request.isAsync()) {
+    request.finishRequest();
+    response.finishResponse(); // 写数据到浏览器
+}
+
+if (!success || !request.isAsync()) {
+    updateWrapperErrorCount(request, response);
+    request.recycle(); // 销毁request和response
+    response.recycle();
+}
+
+**/
+```
+
+### 3.1.3 聊聊异步Servlet的使用场景
 
 分析了这么多，那么异步Servlet的使用场景有哪些呢？其实我们只要抓住一点就可以分析了，就是异步Servlet提高了系统的吞吐量，可以接受更多的请求。假设web系统中Tomcat的线程不够用了，大量请求在等待，而此时Web系统应用层面的优化已经不能再优化了，也就是无法缩短业务逻辑的响应时间了，这个时候，如果想让减少用户的等待时间，提高吞吐量，可以尝试下使用异步Servlet。
 
@@ -611,7 +617,7 @@ if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
 
 由于涉及线程间的交互，且有超时时间限制，实际运用上，可用消息队列替代。
 
-
+来源：https://my.oschina.net/luozhou/blog/3116782
 
 # 4. Tomcat自定义类加载器
 

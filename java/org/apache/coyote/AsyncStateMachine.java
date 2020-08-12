@@ -16,14 +16,14 @@
  */
 package org.apache.coyote;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.tomcat.util.net.AbstractEndpoint.Handler.SocketState;
 import org.apache.tomcat.util.res.StringManager;
 import org.apache.tomcat.util.security.PrivilegedGetTccl;
 import org.apache.tomcat.util.security.PrivilegedSetTccl;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Manages the state transitions for async requests.
@@ -273,8 +273,8 @@ class AsyncStateMachine {
             return SocketState.LONG;
         } else if (state == AsyncState.MUST_COMPLETE || state == AsyncState.COMPLETING) {
             asyncCtxt.fireOnComplete(); // 监听到子线程执行完毕了，调用listener.complete方法
-            state = AsyncState.DISPATCHED;
-            return SocketState.ASYNC_END;
+            state = AsyncState.DISPATCHED; // 这里把request.isAsync设置为false
+            return SocketState.ASYNC_END;// 设置socketState
         } else if (state == AsyncState.MUST_DISPATCH) {
             state = AsyncState.DISPATCHING;
             return SocketState.ASYNC_END;

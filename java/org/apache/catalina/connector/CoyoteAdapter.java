@@ -180,7 +180,7 @@ public class CoyoteAdapter implements Adapter {
                     ClassLoader oldCL = null;
                     try {
                         oldCL = request.getContext().bind(false, null);
-                        res.onWritePossible(); // 这里执行浏览器响应，写入数据
+                        res.onWritePossible(); // 写数据到浏览器，MyAsyncServlet 例子不会进入这里！！
                         if (request.isFinished() && req.sendAllDataReadEvent() &&
                                 readListener != null) {
                             readListener.onAllDataRead();
@@ -237,7 +237,7 @@ public class CoyoteAdapter implements Adapter {
 
             if (!request.isAsync()) {
                 request.finishRequest();
-                response.finishResponse();
+                response.finishResponse(); // 写数据到浏览器
             }
 
             // Check to see if the processor is in an error state. If it is,

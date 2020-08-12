@@ -31,7 +31,7 @@ public class MyAsyncServlet extends HttpServlet {
         out.flush();
 
         AsyncContext asyncContext = req.startAsync();// 异步上下文，存储当前的请求响应对象
-        asyncContext.setTimeout(10000);// 异步执行任务，10秒超时
+        asyncContext.setTimeout(1000000);// 异步执行任务，超时配置
         asyncContext.start(new Runnable() {
             @Override
             public void run() {
@@ -42,6 +42,7 @@ public class MyAsyncServlet extends HttpServlet {
                     PrintWriter out = resp.getWriter();
                     out.println("执行业务代码：" + new Date());
                     out.println("<br/>");
+                    out.flush();
                     asyncContext.complete();
                 } catch (Exception e) {
                     e.printStackTrace();

@@ -16,16 +16,6 @@
  */
 package org.apache.coyote;
 
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.servlet.RequestDispatcher;
-
 import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.buf.MessageBytes;
@@ -37,6 +27,15 @@ import org.apache.tomcat.util.net.SSLSupport;
 import org.apache.tomcat.util.net.SocketEvent;
 import org.apache.tomcat.util.net.SocketWrapperBase;
 import org.apache.tomcat.util.res.StringManager;
+
+import javax.servlet.RequestDispatcher;
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provides functionality and attributes common to all supported protocols
@@ -235,7 +234,7 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
         RequestInfo rp = request.getRequestProcessor();
         try {
             rp.setStage(org.apache.coyote.Constants.STAGE_SERVICE);
-            if (!getAdapter().asyncDispatch(request, response, status)) {
+            if (!getAdapter().asyncDispatch(request, response, status)) { // 处理请求
                 setErrorState(ErrorState.CLOSE_NOW, null);
             }
         } catch (InterruptedIOException e) {
@@ -498,8 +497,8 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
         }
         case ASYNC_COMPLETE: {
             clearDispatches();
-            if (asyncStateMachine.asyncComplete()) {
-                processSocketEvent(SocketEvent.OPEN_READ, true);
+            if (asyncStateMachine.asyncComplete()) { // 状态由 AsyncState.STARTED 转换为 AsyncState.COMPLETING，后续可满足触发AsyncContext.fireOnComplete
+                processSocketEvent(SocketEvent.OPEN_READ, true);// 异步流程，处理socket
             }
             break;
         }
