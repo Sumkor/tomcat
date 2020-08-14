@@ -719,7 +719,7 @@ https://www.cnblogs.com/Marydon20170307/p/7141784.html
 触发条件：WEB-INF目录下类文件的修改时间有变动，或者jar文件增加、修改、删除    
 结果：触发Context重新加载类  
 
-注意，增加类文件不会立即触发重新加载，因为类加载是按需加载？   
+注意，增加类文件不会立即触发重新加载，因为类加载是按需加载   
 
 热加载实现：  
 ```java
@@ -750,4 +750,43 @@ org.apache.jasper.servlet.JspServletWrapper.getServlet
 
 来源：https://www.bilibili.com/video/BV16W411A7wE?p=5
 
-# embed
+# 5. embed-tomcat
+
+Springboot中启动内嵌的tomcat
+
+执行Springboot的run方法  
+org.springframework.boot.SpringApplication#run(java.lang.String...)  
+org.springframework.boot.SpringApplication#refreshContext  
+
+进入到Spring context的refresh方法  
+org.springframework.context.support.AbstractApplicationContext#refresh  
+org.springframework.context.support.AbstractApplicationContext#onRefresh  
+
+回到Springboot实现的onRefresh方法  
+org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext#onRefresh  
+org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext#createWebServer  
+
+创建Tomcat容器  
+org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory#getWebServer  
+```java
+public class TomcatServletWebServerFactory {
+	@Override
+	public WebServer getWebServer(ServletContextInitializer... initializers) {
+		Tomcat tomcat = new Tomcat();
+		File baseDir = (this.baseDirectory != null) ? this.baseDirectory
+				: createTempDir("tomcat");
+		tomcat.setBaseDir(baseDir.getAbsolutePath());
+		Connector connector = new Connector(this.protocol);
+		tomcat.getService().addConnector(connector);
+		customizeConnector(connector);
+		tomcat.setConnector(connector);
+		tomcat.getHost().setAutoDeploy(false);
+		configureEngine(tomcat.getEngine());
+		for (Connector additionalConnector : this.additionalTomcatConnectors) {
+			tomcat.getService().addConnector(additionalConnector);
+		}
+		prepareContext(tomcat.getHost(), initializers);
+		return getTomcatWebServer(tomcat);
+	}
+}
+```

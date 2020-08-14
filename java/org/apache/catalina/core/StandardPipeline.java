@@ -16,26 +16,18 @@
  */
 package org.apache.catalina.core;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.management.ObjectName;
-
-import org.apache.catalina.Contained;
-import org.apache.catalina.Container;
-import org.apache.catalina.JmxEnabled;
-import org.apache.catalina.Lifecycle;
-import org.apache.catalina.LifecycleException;
-import org.apache.catalina.LifecycleState;
-import org.apache.catalina.Pipeline;
-import org.apache.catalina.Valve;
+import org.apache.catalina.*;
 import org.apache.catalina.util.LifecycleBase;
 import org.apache.catalina.util.ToStringUtil;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.res.StringManager;
+
+import javax.management.ObjectName;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Standard implementation of a processing <b>Pipeline</b> that will invoke
@@ -348,7 +340,7 @@ public class StandardPipeline extends LifecycleBase implements Pipeline {
             valve.setNext(basic);
         } else {
             Valve current = first;
-            while (current != null) {
+            while (current != null) {// 这里循环设置Valve，保证最后一个是basicValve。只要每一个容器的最后一个阀门是下一个容器的第一个阀门，就可以完成容器之间的链式调用了
                 if (current.getNext() == basic) {
                     current.setNext(valve);
                     valve.setNext(basic);
