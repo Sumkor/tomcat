@@ -11,5 +11,8 @@
 
 <a href="myAsyncServlet">异步Get()请求</a><br>
 
+<a href="mySessionServlet01">mySessionServlet01</a><br>
+<a href="mySessionServlet02">mySessionServlet02</a><br>
+
 </body>
 </html>

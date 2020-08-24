@@ -619,11 +619,113 @@ if (!success || !request.isAsync()) {
 
 来源：https://my.oschina.net/luozhou/blog/3116782
 
-# 4. Tomcat自定义类加载器
+# 4. Session和Cookie
+
+## 4.1 介绍和使用
+
+https://www.cnblogs.com/cqming/p/10846726.html
+
+Cookie：在浏览器中保存用户的信息
+
+使用：由服务器创建，发送到浏览器保存，之后随着请求发回到服务器
+1.创建cookie
+Cookie cookie = new Cookie("name","value");
+2.发送cookie到浏览器
+response.addCookie(cookie对象);
+3.获取来自客户端的cookie
+Cookie[] cookies = request.getCookies();
+
+使用注意：
+1.cookie第一次是由servlet发送到浏览器中，第一次不能获取cookie
+2.不同的浏览器存放的cookie不是同一个
+3.如果设置了cookie的maxage，则cookie会保存在浏览器所在电脑的硬盘上，如果没设置该属性，则保存在浏览器的内存中
+
+
+Session：在服务器中保存用户信息
+使用：在服务器端创建Session，来保存当前访问服务器的用户的信息
+1.获取session（如果已经创建了session，则返回当前session）或创建session：
+HttpSession session = request.getSession();
+2.设置session最大不活跃时间
+session.setMaxInactiveInteval() //以秒为单位
+3.使用session保存信息
+session.setAttribute(String key,Object value);
+session.getAttribute(String key);
+4.立即销毁session
+session.invalidate();
+
+## 4.2 分析
+
+### 第一次访问
+HttpSession session = req.getSession();
+
+此时Cookie为空，进入代码:
+```java
+/**
+@see org.apache.catalina.connector.RequestFacade#getSession(boolean)
+@see org.apache.catalina.connector.Request#getSession(boolean)
+
+// 此时boolean create == true
+public HttpSession getSession(boolean create) {
+    Session session = doGetSession(create);
+    if (session == null) {
+        return null;
+    }
+    return session.getSession();
+}
+
+@see org.apache.catalina.connector.Request#doGetSession
+
+由于 requestedSessionId == null
+执行 session = manager.createSession(sessionId); 且 sessionId == null
+进入
+@see org.apache.catalina.session.ManagerBase#createSession
+
+创建完Session后，回到
+@see org.apache.catalina.connector.Request#doGetSession
+
+// Creating a new session cookie based on that session
+if (session != null && trackModesIncludesCookie) {
+    Cookie cookie = ApplicationSessionCookieConfig.createSessionCookie(
+            context, session.getIdInternal(), isSecure());
+    response.addSessionCookieInternal(cookie);
+}
+
+**/
+```
+
+响应结果：  
+Set-Cookie: JSESSIONID=9BC58EF48016F804CAE79C47B3E53030; Path=/servlet-demo; HttpOnly
+
+### 第二次访问
+HttpSession session = req.getSession();
+
+此时具有Cookie如下   
+Cookie: JSESSIONID=9BC58EF48016F804CAE79C47B3E53030
+```java
+/**
+@see org.apache.catalina.connector.Request#doGetSession
+
+session = manager.findSession(requestedSessionId);
+
+由于requestedSessionId不为空，即可根据sessionId找到对应的Session对象
+
+**/
+```
+
+## 4.3 总结
+
+在RPC无状态服务中，不使用session，以请求中带的cookie为准。  
+例如两次请求的sessionId一样，但是cookie中携带了userId不同，依旧是代表两个不同的用户的访问会话。  
+
+![session01](./session01.png)
+
+![session02](./session02.png)
+
+# 7. Tomcat自定义类加载器
 
 来源：https://www.bilibili.com/video/BV11g4y1q7fb
 
-## 4.1 类加载过程：
+## 7.1 类加载过程：
 
 1. 加载class文件到JVM（染色体）
 2. 校验
@@ -633,7 +735,7 @@ if (!success || !request.isAsync()) {
 6. 使用（new对象）
 7. 销毁
 
-## 4.2 类加载器
+## 7.2 类加载器
 
 为每个应用生成不同的WebappClassLoader实例 
 
@@ -703,7 +805,7 @@ org.apache.catalina.loader.WebappClassLoader
 **/
 ```
 
-## 4.3 热部署
+## 7.3 热部署
 
 主体：Host  
 配置：server.xml的Host标签配置autoDeploy="true"  
@@ -712,7 +814,7 @@ org.apache.catalina.loader.WebappClassLoader
 
 https://www.cnblogs.com/Marydon20170307/p/7141784.html
 
-## 4.4 热加载
+## 7.4 热加载
 
 主体：Context   
 配置：server.xml的Context标签的reloadable为true
@@ -732,7 +834,7 @@ https://www.cnblogs.com/Marydon20170307/p/7141784.html
 热加载，需要想办法将旧的class对象，从jvm中卸载掉。  
 把用到旧class对象的线程停掉，触发jvm执行垃圾回收。但是很难被回收，结果会导致jvm中的对象越来越多。  
 
-## 4.5 JSP热加载
+## 7.5 JSP热加载
 
 ```java
 /**
@@ -750,7 +852,7 @@ org.apache.jasper.servlet.JspServletWrapper.getServlet
 
 来源：https://www.bilibili.com/video/BV16W411A7wE?p=5
 
-# 5. embed-tomcat
+# 8. embed-tomcat
 
 Springboot中启动内嵌的tomcat
 
