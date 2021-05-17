@@ -6,7 +6,7 @@
 
     <groupId>org.apache.tomcat</groupId>
     <artifactId>tomcat</artifactId>
-    <version>9.0.x</version>
+    <version>9.0.37</version>
 
     <name>tomcat9</name>
 

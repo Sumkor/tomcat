@@ -455,7 +455,7 @@ public abstract class AbstractEndpoint<S,U> {
     public int getAcceptorThreadPriority() { return acceptorThreadPriority; }
 
 
-    private int maxConnections = 8*1024;
+    private int maxConnections = 8*1024; // 任意时刻接收和处理的最大连接数，超过限制时进入AQS同步队列中等待
     public void setMaxConnections(int maxCon) {
         this.maxConnections = maxCon;
         LimitLatch latch = this.connectionLimitLatch;
@@ -591,7 +591,7 @@ public abstract class AbstractEndpoint<S,U> {
      * should be used for server sockets. By default, this value
      * is 100.
      */
-    private int acceptCount = 100;
+    private int acceptCount = 100; // accept队列的长度，accept队列用于保存全连接状态的请求，ServerSocket#accept 会从accept队列中拉取请求
     public void setAcceptCount(int acceptCount) { if (acceptCount > 0) this.acceptCount = acceptCount; }
     public int getAcceptCount() { return acceptCount; }
 
@@ -697,7 +697,7 @@ public abstract class AbstractEndpoint<S,U> {
     /**
      * Maximum amount of worker threads.
      */
-    private int maxThreads = 200;
+    private int maxThreads = 200; // 请求处理线程的最大数量
     public void setMaxThreads(int maxThreads) {
         this.maxThreads = maxThreads;
         Executor executor = this.executor;

@@ -28,7 +28,7 @@ import org.apache.juli.logging.LogFactory;
  * after which all subsequent requests to acquire the latch will be placed in a
  * FIFO queue until one of the shares is returned.
  */
-public class LimitLatch {
+public class LimitLatch { // 控制最大的并非数。当超过这个并发数的时候就把当前请求并发执行的线程放入到等待队列中，待有释放线程时才按FIFO的方式执行等待队列中的线程。
 
     private static final Log log = LogFactory.getLog(LimitLatch.class);
 
@@ -39,9 +39,9 @@ public class LimitLatch {
         }
 
         @Override
-        protected int tryAcquireShared(int ignored) {
-            long newCount = count.incrementAndGet();
-            if (!released && newCount > limit) {
+        protected int tryAcquireShared(int ignored) { // 获取共享锁
+            long newCount = count.incrementAndGet();  // 累加线程数
+            if (!released && newCount > limit) {      // 若当前线程数超过限制，则获取锁失败
                 // Limit exceeded
                 count.decrementAndGet();
                 return -1;
@@ -51,7 +51,7 @@ public class LimitLatch {
         }
 
         @Override
-        protected boolean tryReleaseShared(int arg) {
+        protected boolean tryReleaseShared(int arg) { // 释放共享锁
             count.decrementAndGet();
             return true;
         }
