@@ -603,9 +603,9 @@ public class Catalina {
         if (serverXml != null) {
             serverXml.load(this);
         } else {
-            try (ConfigurationSource.Resource resource = ConfigFileLoader.getSource().getServerXml()) {
+            try (ConfigurationSource.Resource resource = ConfigFileLoader.getSource().getServerXml()) { // 项目启动时，进入这里解析 server.xml
                 // Create and execute our Digester
-                Digester digester = start ? createStartDigester() : createStopDigester();
+                Digester digester = start ? createStartDigester() : createStopDigester(); // 创建 Digester 对象
                 InputStream inputStream = resource.getInputStream();
                 InputSource inputSource = new InputSource(resource.getURI().toURL().toString());
                 inputSource.setByteStream(inputStream);
@@ -614,7 +614,7 @@ public class Catalina {
                     digester.startGeneratingCode();
                     generateClassHeader(digester, start);
                 }
-                digester.parse(inputSource);
+                digester.parse(inputSource); // 使用 Digester 对象解析 xml 文件
                 if (generateCode) {
                     generateClassFooter(digester);
                     try (FileWriter writer = new FileWriter(new File(serverXmlLocation,
@@ -706,8 +706,8 @@ public class Catalina {
         initNaming();
 
         // Parse main server.xml
-        parseServerXml(true);
-        Server s = getServer();
+        parseServerXml(true); // 解析 server.xml
+        Server s = getServer(); // 获取解析之后得到的 Server 对象
         if (s == null) {
             return;
         }

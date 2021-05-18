@@ -65,7 +65,7 @@ public final class Bootstrap {
         String userDir = System.getProperty("user.dir");
 
         // Home first
-        String home = System.getProperty(Constants.CATALINA_HOME_PROP);
+        String home = System.getProperty(Constants.CATALINA_HOME_PROP); // 获取 Tomcat 的安装目录
         File homeFile = null;
 
         if (home != null) {
@@ -83,7 +83,7 @@ public final class Bootstrap {
             File bootstrapJar = new File(userDir, "bootstrap.jar");
 
             if (bootstrapJar.exists()) {
-                File f = new File(userDir, "..");
+                File f = new File(userDir, ".."); // bootstrap.jar 的上级目录，其实就是 Tomcat 安装路径下的 bin 文件夹
                 try {
                     homeFile = f.getCanonicalFile();
                 } catch (IOException ioe) {
@@ -127,7 +127,7 @@ public final class Bootstrap {
 
 
     /**
-     * Daemon reference.
+     * Daemon reference. // Catalina 类实例
      */
     private Object catalinaDaemon = null;
 
@@ -452,7 +452,7 @@ public final class Bootstrap {
                 // Don't set daemon until init() has completed
                 Bootstrap bootstrap = new Bootstrap();
                 try {
-                    bootstrap.init();
+                    bootstrap.init(); // 初始化类加载器，反射实例化 Catalina
                 } catch (Throwable t) {
                     handleThrowable(t);
                     t.printStackTrace();
@@ -482,8 +482,8 @@ public final class Bootstrap {
                 daemon.stop();
             } else if (command.equals("start")) {
                 daemon.setAwait(true);
-                daemon.load(args);
-                daemon.start();
+                daemon.load(args); // 反射调用 Catalina#load
+                daemon.start();    // 反射调用 Catalina#start
                 if (null == daemon.getServer()) {
                     System.exit(1);
                 }

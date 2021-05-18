@@ -6,8 +6,8 @@
 
 ```code
 class Tomcat {
-    Connector connector;// 处理请求
-    List<Servlet> servlets;// Servlet容器
+    Connector connector; // 处理请求
+    Container Container; // Servlet容器
 }
 ```
 
