@@ -248,7 +248,7 @@ public final class Bootstrap {
      */
     public void init() throws Exception {
 
-        initClassLoaders();
+        initClassLoaders(); // 初始化类加载器，实际调试结果可知 commonLoader、catalinaLoader、sharedLoader 是同一个实例，它们的父类加载器都是 AppClassLoader
 
         Thread.currentThread().setContextClassLoader(catalinaLoader);
 
@@ -258,7 +258,7 @@ public final class Bootstrap {
         if (log.isDebugEnabled())
             log.debug("Loading startup class");
         Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");
-        Object startupInstance = startupClass.getConstructor().newInstance();
+        Object startupInstance = startupClass.getConstructor().newInstance(); // 使用 catalinaLoader 实例化 Catalina
 
         // Set the shared extensions class loader
         if (log.isDebugEnabled())
@@ -270,7 +270,7 @@ public final class Bootstrap {
         paramValues[0] = sharedLoader;
         Method method =
             startupInstance.getClass().getMethod(methodName, paramTypes);
-        method.invoke(startupInstance, paramValues);
+        method.invoke(startupInstance, paramValues); // Catalina 实例设置父类加载器为 sharedLoader
 
         catalinaDaemon = startupInstance;
     }

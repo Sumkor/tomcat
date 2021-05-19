@@ -721,7 +721,7 @@ public class Catalina {
 
         // Start the new server
         try {
-            getServer().init();
+            getServer().init(); // 调用 Server#init，依次执行各子组件的 Lifecycle#init 方法
         } catch (LifecycleException e) {
             if (Boolean.getBoolean("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE")) {
                 throw new java.lang.Error(e);
@@ -769,7 +769,7 @@ public class Catalina {
 
         // Start the new server
         try {
-            getServer().start();
+            getServer().start(); // 调用 Server#start，依次执行各子组件的 Lifecycle#start 方法
         } catch (LifecycleException e) {
             log.fatal(sm.getString("catalina.serverStartFail"), e);
             try {

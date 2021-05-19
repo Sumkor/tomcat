@@ -510,10 +510,10 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     @Override
     protected void initInternal() throws LifecycleException {
 
-        super.initInternal();
+        super.initInternal(); // 注册 Service 实例到 JMX
 
         if (engine != null) {
-            engine.init();
+            engine.init(); // StandardEngine#initInternal
         }
 
         // Initialize any Executors
@@ -525,12 +525,12 @@ public class StandardService extends LifecycleMBeanBase implements Service {
         }
 
         // Initialize mapper listener
-        mapperListener.init();
+        mapperListener.init(); // 调用 LifecycleMBeanBase#initInternal，注册 mapperListener 到 JMX
 
         // Initialize our defined Connectors
         synchronized (connectorsLock) {
             for (Connector connector : connectors) {
-                connector.init();
+                connector.init(); // Connector#initInternal
             }
         }
     }

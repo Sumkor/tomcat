@@ -562,23 +562,23 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
 
         if (oname == null) {
             // Component not pre-registered so register it
-            oname = createObjectName();
+            oname = createObjectName(); // eg. Catalina:type=ProtocolHandler,port=8080
             if (oname != null) {
-                Registry.getRegistry(null, null).registerComponent(this, oname, null);
+                Registry.getRegistry(null, null).registerComponent(this, oname, null); // 注册 Protocol 对象实例到 JMX
             }
         }
 
         if (this.domain != null) {
-            rgOname = new ObjectName(domain + ":type=GlobalRequestProcessor,name=" + getName());
+            rgOname = new ObjectName(domain + ":type=GlobalRequestProcessor,name=" + getName()); // eg. Catalina:type=GlobalRequestProcessor,name="http-nio-8080"
             Registry.getRegistry(null, null).registerComponent(
                     getHandler().getGlobal(), rgOname, null);
         }
 
-        String endpointName = getName();
+        String endpointName = getName(); // eg. http-nio-8080
         endpoint.setName(endpointName.substring(1, endpointName.length()-1));
         endpoint.setDomain(domain);
 
-        endpoint.init();
+        endpoint.init(); // 初始化 Endpoint。包括：启动服务，绑定端口，监听请求
     }
 
 

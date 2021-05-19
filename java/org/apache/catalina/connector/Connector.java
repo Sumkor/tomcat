@@ -997,18 +997,18 @@ public class Connector extends LifecycleMBeanBase  {
     @Override
     protected void initInternal() throws LifecycleException {
 
-        super.initInternal();
+        super.initInternal(); // 注册当前 Connector 实例到 JMX
 
         if (protocolHandler == null) {
             throw new LifecycleException(
                     sm.getString("coyoteConnector.protocolHandlerInstantiationFailed"));
         }
 
-        // Initialize adapter
+        // Initialize adapter // 初始化适配器，该适配器用于连接 Connector 和 Container
         adapter = new CoyoteAdapter(this);
         protocolHandler.setAdapter(adapter);
         if (service != null) {
-            protocolHandler.setUtilityExecutor(service.getServer().getUtilityExecutor());
+            protocolHandler.setUtilityExecutor(service.getServer().getUtilityExecutor()); // 设置公共线程池
         }
 
         // Make sure parseBodyMethodsSet has a default
@@ -1036,7 +1036,7 @@ public class Connector extends LifecycleMBeanBase  {
         }
 
         try {
-            protocolHandler.init();
+            protocolHandler.init(); // 调用 AbstractProtocol#init，进行初始化 Protocol 实现类、Endpoint 实现类
         } catch (Exception e) {
             throw new LifecycleException(
                     sm.getString("coyoteConnector.protocolHandlerInitializationFailed"), e);

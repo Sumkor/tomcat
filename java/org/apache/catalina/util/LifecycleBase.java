@@ -132,7 +132,7 @@ public abstract class LifecycleBase implements Lifecycle {
         }
 
         try {
-            setStateInternal(LifecycleState.INITIALIZING, null, false);
+            setStateInternal(LifecycleState.INITIALIZING, null, false); // 设置生命周期状态，触发相关监听器
             initInternal();
             setStateInternal(LifecycleState.INITIALIZED, null, false);
         } catch (Throwable t) {
@@ -157,7 +157,7 @@ public abstract class LifecycleBase implements Lifecycle {
     public final synchronized void start() throws LifecycleException {
 
         if (LifecycleState.STARTING_PREP.equals(state) || LifecycleState.STARTING.equals(state) ||
-                LifecycleState.STARTED.equals(state)) {
+                LifecycleState.STARTED.equals(state)) { // 状态校验
 
             if (log.isDebugEnabled()) {
                 Exception e = new LifecycleException();
@@ -180,7 +180,7 @@ public abstract class LifecycleBase implements Lifecycle {
 
         try {
             setStateInternal(LifecycleState.STARTING_PREP, null, false);
-            startInternal();
+            startInternal(); // 调用子类的 startInternal 方法
             if (state.equals(LifecycleState.FAILED)) {
                 // This is a 'controlled' failure. The component put itself into the
                 // FAILED state so call stop() to complete the clean-up.

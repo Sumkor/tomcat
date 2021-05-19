@@ -861,7 +861,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
     @Override
     protected void initInternal() throws LifecycleException {
         reconfigureStartStopExecutor(getStartStopThreads());
-        super.initInternal();
+        super.initInternal(); // 注册当前容器实例到 JMX
     }
 
 
@@ -903,17 +903,17 @@ public abstract class ContainerBase extends LifecycleMBeanBase
         }
 
         // Start our child containers, if any
-        Container children[] = findChildren();
+        Container children[] = findChildren(); // 查询子容器
         List<Future<Void>> results = new ArrayList<>();
         for (Container child : children) {
-            results.add(startStopExecutor.submit(new StartChild(child)));
+            results.add(startStopExecutor.submit(new StartChild(child))); // 异步启动子容器
         }
 
         MultiThrowable multiThrowable = null;
 
         for (Future<Void> result : results) {
             try {
-                result.get();
+                result.get(); // 获取子容器启动结果
             } catch (Throwable e) {
                 log.error(sm.getString("containerBase.threadedStartFailed"), e);
                 if (multiThrowable == null) {

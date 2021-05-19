@@ -922,12 +922,12 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         fireLifecycleEvent(CONFIGURE_START_EVENT, null);
         setState(LifecycleState.STARTING);
 
-        globalNamingResources.start();
+        globalNamingResources.start(); // 内部调用 NamingResourcesImpl#startInternal
 
         // Start our defined Services
         synchronized (servicesLock) {
             for (Service service : services) {
-                service.start();
+                service.start(); // 子容器启动
             }
         }
 
@@ -1004,9 +1004,9 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
     @Override
     protected void initInternal() throws LifecycleException {
 
-        super.initInternal();
+        super.initInternal(); // 调用 LifecycleMBeanBase#initInternal，注册 Server 实例到 JMX MBeanServer
 
-        // Initialize utility executor
+        // Initialize utility executor // 初始化并注册公共线程池到 JMX
         reconfigureUtilityExecutor(getUtilityThreadsInternal(utilityThreads));
         register(utilityExecutor, "type=UtilityExecutor");
 
@@ -1016,7 +1016,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         // will be registered under multiple names
         onameStringCache = register(new StringCache(), "type=StringCache");
 
-        // Register the MBeanFactory
+        // Register the MBeanFactory // 注册 MBeanFactory 到 JMX
         MBeanFactory factory = new MBeanFactory();
         factory.setContainer(this);
         onameMBeanFactory = register(factory, "type=MBeanFactory");
@@ -1027,12 +1027,12 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         // Populate the extension validator with JARs from common and shared
         // class loaders
         if (getCatalina() != null) {
-            ClassLoader cl = getCatalina().getParentClassLoader();
+            ClassLoader cl = getCatalina().getParentClassLoader(); // 从 Catalina 实例中得到类加载器 sharedLoader
             // Walk the class loader hierarchy. Stop at the system class loader.
             // This will add the shared (if present) and common class loaders
-            while (cl != null && cl != ClassLoader.getSystemClassLoader()) {
+            while (cl != null && cl != ClassLoader.getSystemClassLoader()) { // sharedLoader 并不是 SystemClassLoader
                 if (cl instanceof URLClassLoader) {
-                    URL[] urls = ((URLClassLoader) cl).getURLs();
+                    URL[] urls = ((URLClassLoader) cl).getURLs(); // sharedLoader 得到的 URLs 可能为空
                     for (URL url : urls) {
                         if (url.getProtocol().equals("file")) {
                             try {
@@ -1049,7 +1049,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                         }
                     }
                 }
-                cl = cl.getParent();
+                cl = cl.getParent(); // 由 sharedLoader 获取父类加载器得到 AppClassLoader，它是一个 SystemClassLoader
             }
         }
         // Initialize our defined Services

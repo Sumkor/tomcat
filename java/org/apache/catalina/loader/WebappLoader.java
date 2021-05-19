@@ -389,7 +389,7 @@ public class WebappLoader extends LifecycleMBeanBase
         // Construct a class loader based on our current repositories list
         try {
 
-            classLoader = createClassLoader();
+            classLoader = createClassLoader(); // 创建 Webapp 类加载器
             classLoader.setResources(context.getResources());
             classLoader.setDelegate(this.delegate);
 
@@ -406,7 +406,7 @@ public class WebappLoader extends LifecycleMBeanBase
             }
             ObjectName cloname = new ObjectName(context.getDomain() + ":type=" +
                     classLoader.getClass().getSimpleName() + ",host=" +
-                    context.getParent().getName() + ",context=" + contextName);
+                    context.getParent().getName() + ",context=" + contextName); // eg. Catalina:type=ParallelWebappClassLoader,host=localhost,context=/servlet-demo
             Registry.getRegistry(null, null)
                 .registerComponent(classLoader, cloname, null);
 
@@ -504,13 +504,13 @@ public class WebappLoader extends LifecycleMBeanBase
         throws Exception {
 
         if (parentClassLoader == null) {
-            parentClassLoader = context.getParentClassLoader();
+            parentClassLoader = context.getParentClassLoader(); // 得到 Tomcat 自定义的类加载器
         } else {
             context.setParentClassLoader(parentClassLoader);
         }
 
         if (ParallelWebappClassLoader.class.getName().equals(loaderClass)) {
-            return new ParallelWebappClassLoader(parentClassLoader);
+            return new ParallelWebappClassLoader(parentClassLoader); // 创建 Webapp 类加载器
         }
 
         Class<?> clazz = Class.forName(loaderClass);

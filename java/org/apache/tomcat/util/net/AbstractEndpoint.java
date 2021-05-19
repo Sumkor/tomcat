@@ -1151,16 +1151,16 @@ public abstract class AbstractEndpoint<S,U> {
 
     public final void init() throws Exception {
         if (bindOnInit) {
-            bindWithCleanup();
+            bindWithCleanup(); // 启动服务，绑定端口
             bindState = BindState.BOUND_ON_INIT;
         }
         if (this.domain != null) {
             // Register endpoint (as ThreadPool - historical name)
-            oname = new ObjectName(domain + ":type=ThreadPool,name=\"" + getName() + "\"");
+            oname = new ObjectName(domain + ":type=ThreadPool,name=\"" + getName() + "\""); // eg. Catalina:type=ThreadPool,name="http-nio-8080"
             Registry.getRegistry(null, null).registerComponent(this, oname, null);
 
             ObjectName socketPropertiesOname = new ObjectName(domain +
-                    ":type=SocketProperties,name=\"" + getName() + "\"");
+                    ":type=SocketProperties,name=\"" + getName() + "\""); // eg. Catalina:type=SocketProperties,name="http-nio-8080"
             socketProperties.setObjectName(socketPropertiesOname);
             Registry.getRegistry(null, null).registerComponent(socketProperties, socketPropertiesOname, null);
 

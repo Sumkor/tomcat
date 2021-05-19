@@ -4910,7 +4910,7 @@ public class StandardContext extends ContainerBase
         }
 
         // Post work directory
-        postWorkDirectory();
+        postWorkDirectory(); // 设置工作目录
 
         // Add missing components as necessary
         if (getResources() == null) {   // (1) Required by Loader
@@ -4918,29 +4918,29 @@ public class StandardContext extends ContainerBase
                 log.debug("Configuring default Resources");
 
             try {
-                setResources(new StandardRoot(this));
+                setResources(new StandardRoot(this)); // 为当前 Web 应用设置资源根对象 StandardRoot
             } catch (IllegalArgumentException e) {
                 log.error(sm.getString("standardContext.resourcesInit"), e);
                 ok = false;
             }
         }
         if (ok) {
-            resourcesStart();
+            resourcesStart(); // 调用 StandardRoot#startInternal
         }
 
         if (getLoader() == null) {
-            WebappLoader webappLoader = new WebappLoader();
+            WebappLoader webappLoader = new WebappLoader(); // 创建 WebappLoader，用于构造 Webapp 类加载器
             webappLoader.setDelegate(getDelegate());
             setLoader(webappLoader);
         }
 
         // An explicit cookie processor hasn't been specified; use the default
         if (cookieProcessor == null) {
-            cookieProcessor = new Rfc6265CookieProcessor();
+            cookieProcessor = new Rfc6265CookieProcessor(); // 使用默认的 Cookie 处理器
         }
 
         // Initialize character set mapper
-        getCharsetMapper();
+        getCharsetMapper(); // 字符映射，默认使用配置文件 CharsetMapperDefault.properties
 
         // Validate required extensions
         boolean dependencyCheck = true;
@@ -4980,14 +4980,14 @@ public class StandardContext extends ContainerBase
 
 
         // Binding thread
-        ClassLoader oldCCL = bindThread();
+        ClassLoader oldCCL = bindThread(); // 得到 null
 
         try {
             if (ok) {
                 // Start our subordinate components, if any
                 Loader loader = getLoader();
                 if (loader instanceof Lifecycle) {
-                    ((Lifecycle) loader).start();
+                    ((Lifecycle) loader).start(); // 调用 WebappLoader#startInternal
                 }
 
                 // since the loader just started, the webapp classloader is now
@@ -5043,7 +5043,7 @@ public class StandardContext extends ContainerBase
                 // Notify our interested LifecycleListeners
                 fireLifecycleEvent(Lifecycle.CONFIGURE_START_EVENT, null);
 
-                // Start our child containers, if not already started
+                // Start our child containers, if not already started // 同步启动子容器 Wrapper
                 for (Container child : findChildren()) {
                     if (!child.getState().isAvailable()) {
                         child.start();
@@ -5763,7 +5763,7 @@ public class StandardContext extends ContainerBase
                 PrivilegedAction<ClassLoader> pa = new PrivilegedGetTccl();
                 originalClassLoader = AccessController.doPrivileged(pa);
             } else {
-                originalClassLoader = Thread.currentThread().getContextClassLoader();
+                originalClassLoader = Thread.currentThread().getContextClassLoader(); // 得到 Tomcat 自定义的 URLClassLoader，其父类加载器是 AppClassLoader
             }
         }
 
@@ -6042,7 +6042,7 @@ public class StandardContext extends ContainerBase
             if ((engineName == null) || (engineName.length() < 1))
                 engineName = "_";
 
-            String temp = getBaseName();
+            String temp = getBaseName(); // 获取 Context 中配置的应用名，如 servlet-demo
             if (temp.startsWith("/"))
                 temp = temp.substring(1);
             temp = temp.replace('/', '_');
@@ -6055,7 +6055,7 @@ public class StandardContext extends ContainerBase
                 workDir = "work" + File.separator + engineName +
                     File.separator + hostName + File.separator + temp;
             }
-            setWorkDir(workDir);
+            setWorkDir(workDir); // eg. work\Catalina\localhost\servlet-demo
         }
 
         // Create this directory if necessary
@@ -6079,7 +6079,7 @@ public class StandardContext extends ContainerBase
         if (context == null) {
             getServletContext();
         }
-        context.setAttribute(ServletContext.TEMPDIR, dir);
+        context.setAttribute(ServletContext.TEMPDIR, dir); // eg. D:\work\github\tomcat\work\Catalina\localhost\servlet-demo
         context.setAttributeReadOnly(ServletContext.TEMPDIR);
     }
 

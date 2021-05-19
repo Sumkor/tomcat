@@ -33,7 +33,7 @@ import org.ietf.jgss.GSSName;
 
 /**
  * This class extends the CombinedRealm (hence it can wrap other Realms) to
- * provide a user lock out mechanism if there are too many failed
+ * provide a user lock out mechanism if there are too many failed            // 提供了一个用户下线机制，当一定时间内认证失败太多次时，强制下线
  * authentication attempts in a given period of time. To ensure correct
  * operation, there is a reasonable degree of synchronisation in this Realm.
  * This Realm does not require modification to the underlying Realms or the

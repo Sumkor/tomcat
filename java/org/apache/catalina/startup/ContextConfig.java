@@ -1325,7 +1325,7 @@ public class ContextConfig implements LifecycleListener {
 
             // Step 9. Apply merged web.xml to Context
             if (ok) {
-                configureContext(webXml);
+                configureContext(webXml); // 使用 web.xml 中的 Servlet 信息组装 Wrapper 容器
             }
         } else {
             webXml.merge(tomcatWebXml);
