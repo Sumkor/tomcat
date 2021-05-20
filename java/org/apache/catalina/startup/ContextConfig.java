@@ -982,7 +982,7 @@ public class ContextConfig implements LifecycleListener {
                     Boolean.valueOf(context.getXmlNamespaceAware())));
         }
 
-        webConfig();
+        webConfig(); // 解析 web.xml
 
         if (!context.getIgnoreAnnotations()) {
             applicationAnnotationsConfig();
@@ -1497,7 +1497,7 @@ public class ContextConfig implements LifecycleListener {
             context.getNamingResources().addService(service);
         }
         for (ServletDef servlet : webxml.getServlets().values()) {
-            Wrapper wrapper = context.createWrapper();
+            Wrapper wrapper = context.createWrapper(); // 利用 web.xml 中的 Servlet 信息组装 Wrapper 容器
             // Description is ignored
             // Display name is ignored
             // Icons are ignored
@@ -1555,7 +1555,7 @@ public class ContextConfig implements LifecycleListener {
                 webxml.getServletMappings().entrySet()) {
             context.addServletMappingDecoded(entry.getKey(), entry.getValue());
         }
-        SessionConfig sessionConfig = webxml.getSessionConfig();
+        SessionConfig sessionConfig = webxml.getSessionConfig();  // 利用 web.xml 中的 SessionConfig 配置 ApplicationContext#ApplicationSessionCookieConfig 对象
         if (sessionConfig != null) {
             if (sessionConfig.getSessionTimeout() != null) {
                 context.setSessionTimeout(

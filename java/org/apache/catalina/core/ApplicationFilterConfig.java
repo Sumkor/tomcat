@@ -246,9 +246,9 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
 
         // Identify the class loader we will be using
         String filterClass = filterDef.getFilterClass();
-        this.filter = (Filter) context.getInstanceManager().newInstance(filterClass);
+        this.filter = (Filter) context.getInstanceManager().newInstance(filterClass); // 创建 Filter 实例
 
-        initFilter();
+        initFilter(); // 调用 Filter#init
 
         return this.filter;
 

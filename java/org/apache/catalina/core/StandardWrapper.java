@@ -980,9 +980,9 @@ public class StandardWrapper extends ContainerBase
      */
     @Override
     public synchronized void load() throws ServletException {
-        instance = loadServlet();
+        instance = loadServlet(); // 创建 Servlet 实例，调用 Servlet#init
 
-        if (!instanceInitialized) {
+        if (!instanceInitialized) { // 避免重复初始化
             initServlet(instance);
         }
 
@@ -1039,7 +1039,7 @@ public class StandardWrapper extends ContainerBase
 
             InstanceManager instanceManager = ((StandardContext)getParent()).getInstanceManager();
             try {
-                servlet = (Servlet) instanceManager.newInstance(servletClass);// 构造Servlet实例，若没有继承SingleThreadModel，则只在这里实例化一次，因此为单例
+                servlet = (Servlet) instanceManager.newInstance(servletClass); // 构造 Servlet 实例，这里 servletClass = "org.apache.catalina.servlets.DefaultServlet" 或自定义实现类
             } catch (ClassCastException e) {
                 unavailable(null);
                 // Restore the context ClassLoader
@@ -1079,14 +1079,14 @@ public class StandardWrapper extends ContainerBase
 
             classLoadTime=(int) (System.currentTimeMillis() -t1);
 
-            if (servlet instanceof SingleThreadModel) {
+            if (servlet instanceof SingleThreadModel) { // 若 Servlet 继承了 SingleThreadModel，说明是多例，需要使用实例池
                 if (instancePool == null) {
                     instancePool = new Stack<>();
                 }
                 singleThreadModel = true;
             }
 
-             initServlet(servlet);// 初始化，调用Servlet.init方法
+            initServlet(servlet); // 初始化，调用 Servlet#init
 
             fireContainerEvent("load", this);
 

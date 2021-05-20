@@ -2287,7 +2287,7 @@ public class StandardContext extends ContainerBase
             if (altDDName != null)
                 context.setAttribute(Globals.ALT_DD_ATTR,altDDName);
         }
-        return context.getFacade();
+        return context.getFacade(); // ApplicationContextFacade
     }
 
 
@@ -2841,7 +2841,7 @@ public class StandardContext extends ContainerBase
      *  not an implementation of Wrapper
      */
     @Override
-    public void addChild(Container child) {
+    public void addChild(Container child) { // 将 Wrapper 容器加入 Context 容器
 
         // Global JspServlet
         Wrapper oldJspServlet = null;
@@ -4599,7 +4599,7 @@ public class StandardContext extends ContainerBase
                     listeners[i] + "'");
             try {
                 String listener = listeners[i];
-                results[i] = getInstanceManager().newInstance(listener);
+                results[i] = getInstanceManager().newInstance(listener); // 实例化 ServletContextListener
             } catch (Throwable t) {
                 t = ExceptionUtils.unwrapInvocationTargetException(t);
                 ExceptionUtils.handleThrowable(t);
@@ -4675,7 +4675,7 @@ public class StandardContext extends ContainerBase
                 if (noPluggabilityListeners.contains(listener)) {
                     listener.contextInitialized(tldEvent);
                 } else {
-                    listener.contextInitialized(event);
+                    listener.contextInitialized(event); // 调用 ServletContextListener#contextInitialized
                 }
                 fireContainerEvent("afterContextInitialized", listener);
             } catch (Throwable t) {
@@ -4838,7 +4838,7 @@ public class StandardContext extends ContainerBase
      *  servlets (including those not declared load on startup)
      * @return <code>true</code> if load on startup was considered successful
      */
-    public boolean loadOnStartup(Container children[]) {
+    public boolean loadOnStartup(Container children[]) { // Context 容器启动时加载 Servlet
 
         // Collect "load on startup" servlets that need to be initialized
         TreeMap<Integer, ArrayList<Wrapper>> map = new TreeMap<>();
@@ -4852,16 +4852,16 @@ public class StandardContext extends ContainerBase
             ArrayList<Wrapper> list = map.get(key);
             if (list == null) {
                 list = new ArrayList<>();
-                map.put(key, list);
+                map.put(key, list); // key：loadOnStartup参数，value：对应的Wrapper对象
             }
             list.add(wrapper);
         }
 
         // Load the collected "load on startup" servlets
-        for (ArrayList<Wrapper> list : map.values()) {
+        for (ArrayList<Wrapper> list : map.values()) { // 按照 loadOnStartup 分组，从小到大进行加载
             for (Wrapper wrapper : list) {
                 try {
-                    wrapper.load();
+                    wrapper.load(); // 加载 Servlet
                 } catch (ServletException e) {
                     getLogger().error(sm.getString("standardContext.loadOnStartup.loadException",
                           getName(), wrapper.getName()), StandardWrapper.getRootCause(e));
@@ -4910,7 +4910,7 @@ public class StandardContext extends ContainerBase
         }
 
         // Post work directory
-        postWorkDirectory(); // 设置工作目录
+        postWorkDirectory(); // 设置工作目录，创建 ServletContext
 
         // Add missing components as necessary
         if (getResources() == null) {   // (1) Required by Loader
@@ -4987,7 +4987,7 @@ public class StandardContext extends ContainerBase
                 // Start our subordinate components, if any
                 Loader loader = getLoader();
                 if (loader instanceof Lifecycle) {
-                    ((Lifecycle) loader).start(); // 调用 WebappLoader#startInternal
+                    ((Lifecycle) loader).start(); // 调用 WebappLoader#startInternal，真正创建 Webapp 类加载器
                 }
 
                 // since the loader just started, the webapp classloader is now
@@ -5042,10 +5042,19 @@ public class StandardContext extends ContainerBase
 
                 // Notify our interested LifecycleListeners
                 fireLifecycleEvent(Lifecycle.CONFIGURE_START_EVENT, null);
+                /**
+                 * Context 组件的监听器：
+                 * [org.apache.catalina.startup.ContextConfig, org.apache.catalina.core.StandardHost$MemoryLeakTrackingListener,
+                 * org.apache.catalina.core.ThreadLocalLeakPreventionListener, org.apache.catalina.core.NamingContextListener]
+                 *
+                 * 其中 ContextConfig 会解析 web.xml 得到 ServletDef 对象，并组装为 Wrapper 容器
+                 * @see org.apache.catalina.startup.ContextConfig#webConfig
+                 * @see org.apache.catalina.startup.ContextConfig#configureContext
+                 */
 
                 // Start our child containers, if not already started // 同步启动子容器 Wrapper
                 for (Container child : findChildren()) {
-                    if (!child.getState().isAvailable()) {
+                    if (!child.getState().isAvailable()) { // 由于在解析 web.xml 的时候通过 StandardContext#addChild 启动了 Wrapper，这里控制无法重复启动
                         child.start();
                     }
                 }
@@ -5053,13 +5062,13 @@ public class StandardContext extends ContainerBase
                 // Start the Valves in our pipeline (including the basic),
                 // if any
                 if (pipeline instanceof Lifecycle) {
-                    ((Lifecycle) pipeline).start();
+                    ((Lifecycle) pipeline).start(); // 启动 Context 组件的 pipeline，执行其中的 Valve：NonLoginAuthenticator、StandardContextValve
                 }
 
                 // Acquire clustered manager
                 Manager contextManager = null;
                 Manager manager = getManager();
-                if (manager == null) {
+                if (manager == null) { // 创建 Session 持久化管理器，分为集群、单机两种类型
                     if (log.isDebugEnabled()) {
                         log.debug(sm.getString("standardContext.cluster.noManager",
                                 Boolean.valueOf((getCluster() != null)),
@@ -5119,13 +5128,13 @@ public class StandardContext extends ContainerBase
             }
 
             // Set up the context init params
-            mergeParameters();
+            mergeParameters(); // 设置 web.xml 中的初始化参数
 
             // Call ServletContainerInitializers
             for (Map.Entry<ServletContainerInitializer, Set<Class<?>>> entry :
                 initializers.entrySet()) {
                 try {
-                    entry.getKey().onStartup(entry.getValue(),
+                    entry.getKey().onStartup(entry.getValue(), // 调用 ServletContainerInitializer#onStartup
                             getServletContext());
                 } catch (ServletException e) {
                     log.error(sm.getString("standardContext.sciFail"), e);
@@ -5136,7 +5145,7 @@ public class StandardContext extends ContainerBase
 
             // Configure and call application event listeners
             if (ok) {
-                if (!listenerStart()) {
+                if (!listenerStart()) { // 实例化并启动 ServletContextListener 监听器
                     log.error(sm.getString("standardContext.listenerFail"));
                     ok = false;
                 }
@@ -5153,7 +5162,7 @@ public class StandardContext extends ContainerBase
                 // Start manager
                 Manager manager = getManager();
                 if (manager instanceof Lifecycle) {
-                    ((Lifecycle) manager).start();
+                    ((Lifecycle) manager).start(); // 启动 Session 持久化器，恢复工作目录下的会话
                 }
             } catch(Exception e) {
                 log.error(sm.getString("standardContext.managerFail"), e);
@@ -5170,7 +5179,7 @@ public class StandardContext extends ContainerBase
 
             // Load and initialize all "load on startup" servlets
             if (ok) {
-                if (!loadOnStartup(findChildren())){
+                if (!loadOnStartup(findChildren())){ // 加载 Servlet
                     log.error(sm.getString("standardContext.servletFail"));
                     ok = false;
                 }
@@ -6077,7 +6086,7 @@ public class StandardContext extends ContainerBase
 
         // Set the appropriate servlet context attribute
         if (context == null) {
-            getServletContext();
+            getServletContext(); // 生成 ApplicationContext 实例
         }
         context.setAttribute(ServletContext.TEMPDIR, dir); // eg. D:\work\github\tomcat\work\Catalina\localhost\servlet-demo
         context.setAttributeReadOnly(ServletContext.TEMPDIR);

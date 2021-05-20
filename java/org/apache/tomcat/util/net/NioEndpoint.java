@@ -224,7 +224,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
         if (!getUseInheritedChannel()) {
             serverSock = ServerSocketChannel.open();
             socketProperties.setProperties(serverSock.socket());
-            InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset());
+            InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset()); // 默认 8080 端口，对外提供 Web 服务
             serverSock.socket().bind(addr,getAcceptCount());
         } else {
             // Retrieve the channel provided by the OS
@@ -265,10 +265,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
             // Create worker collection
             if (getExecutor() == null) {
-                createExecutor();
+                createExecutor(); // 接收端的线程池
             }
 
-            initializeConnectionLatch();
+            initializeConnectionLatch(); // 创建 LimitLatch，限制最大连接数，超限制时后续请求进行排队
 
             // Start poller thread
             poller = new Poller();

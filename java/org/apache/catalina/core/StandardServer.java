@@ -578,7 +578,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
             return;
         }
 
-        // Set up a server socket to wait on
+        // Set up a server socket to wait on // 默认是 8005 端口，用于监听 Tomcat 关闭
         try {
             awaitSocket = new ServerSocket(getPortWithOffset(), 1,
                     InetAddress.getByName(address));
@@ -920,6 +920,12 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
     protected void startInternal() throws LifecycleException {
 
         fireLifecycleEvent(CONFIGURE_START_EVENT, null);
+        /**
+         * Server 组件的监听器：
+         * [org.apache.catalina.core.NamingContextListener, org.apache.catalina.startup.VersionLoggerListener,
+         * org.apache.catalina.core.AprLifecycleListener, org.apache.catalina.core.JreMemoryLeakPreventionListener,
+         * org.apache.catalina.mbeans.GlobalResourcesLifecycleListener, org.apache.catalina.core.ThreadLocalLeakPreventionListener]
+         */
         setState(LifecycleState.STARTING);
 
         globalNamingResources.start(); // 内部调用 NamingResourcesImpl#startInternal

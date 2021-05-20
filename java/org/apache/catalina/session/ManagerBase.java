@@ -640,7 +640,7 @@ public abstract class ManagerBase extends LifecycleMBeanBase implements Manager 
         /* Create sessionIdGenerator if not explicitly configured */
         SessionIdGenerator sessionIdGenerator = getSessionIdGenerator();
         if (sessionIdGenerator == null) {
-            sessionIdGenerator = new StandardSessionIdGenerator();
+            sessionIdGenerator = new StandardSessionIdGenerator(); // Session ID 生成器
             setSessionIdGenerator(sessionIdGenerator);
         }
 
@@ -653,7 +653,7 @@ public abstract class ManagerBase extends LifecycleMBeanBase implements Manager 
         }
 
         if (sessionIdGenerator instanceof Lifecycle) {
-            ((Lifecycle) sessionIdGenerator).start();
+            ((Lifecycle) sessionIdGenerator).start(); // 调用 SessionIdGeneratorBase#startInternal 生成 Session ID，确保 Session ID 生成器内部随机器实例化完成
         } else {
             // Force initialization of the random number generator
             if (log.isDebugEnabled())

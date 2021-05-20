@@ -792,7 +792,7 @@ public class Catalina {
         // Register shutdown hook
         if (useShutdownHook) {
             if (shutdownHook == null) {
-                shutdownHook = new CatalinaShutdownHook();
+                shutdownHook = new CatalinaShutdownHook(); // 程序关闭钩子
             }
             Runtime.getRuntime().addShutdownHook(shutdownHook);
 

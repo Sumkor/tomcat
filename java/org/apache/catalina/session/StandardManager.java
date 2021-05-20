@@ -46,7 +46,7 @@ import org.apache.tomcat.util.ExceptionUtils;
 
 /**
  * Standard implementation of the <b>Manager</b> interface that provides
- * simple session persistence across restarts of this component (such as
+ * simple session persistence across restarts of this component (such as   // Session 持久化
  * when the entire server is shut down and restarted, or when a particular
  * web application is reloaded.
  * <p>
@@ -159,7 +159,7 @@ public class StandardManager extends ManagerBase {
                 }
             }
         } else {
-            doLoad();
+            doLoad(); // 加载工作目录下的 SESSIONS.ser 文件，恢复 Session 会话
         }
     }
 
@@ -182,7 +182,7 @@ public class StandardManager extends ManagerBase {
         sessions.clear();
 
         // Open an input stream to the specified pathname, if any
-        File file = file();
+        File file = file(); // eg. D:\work\github\tomcat\work\Catalina\localhost\servlet-demo\SESSIONS.ser
         if (file == null) {
             return;
         }
