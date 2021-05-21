@@ -140,7 +140,7 @@ final class StandardHostValve extends ValveBase {
             // application for processing.
             try {
                 if (!response.isErrorReportRequired()) {
-                    context.getPipeline().getFirst().invoke(request, response);
+                    context.getPipeline().getFirst().invoke(request, response); // 调用 Context 组件的管道阀门
                 }
             } catch (Throwable t) {
                 ExceptionUtils.handleThrowable(t);

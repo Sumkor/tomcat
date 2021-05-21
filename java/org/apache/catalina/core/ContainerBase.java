@@ -860,7 +860,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
     @Override
     protected void initInternal() throws LifecycleException {
-        reconfigureStartStopExecutor(getStartStopThreads());
+        reconfigureStartStopExecutor(getStartStopThreads()); // 每个容器都配置各自的启停线程池，用于异步启动子容器
         super.initInternal(); // 注册当前容器实例到 JMX
     }
 
@@ -869,13 +869,13 @@ public abstract class ContainerBase extends LifecycleMBeanBase
         if (threads == 1) {
             // Use a fake executor
             if (!(startStopExecutor instanceof InlineExecutorService)) {
-                startStopExecutor = new InlineExecutorService();
+                startStopExecutor = new InlineExecutorService(); // 默认实现
             }
         } else {
             // Delegate utility execution to the Service
             Server server = Container.getService(this).getServer();
             server.setUtilityThreads(threads);
-            startStopExecutor = server.getUtilityExecutor();
+            startStopExecutor = server.getUtilityExecutor(); // 公共线程池
         }
     }
 
@@ -933,7 +933,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
             ((Lifecycle) pipeline).start();
         }
 
-        setState(LifecycleState.STARTING);
+        setState(LifecycleState.STARTING); // 设置生命周期
 
         // Start our thread
         if (backgroundProcessorDelay > 0) {

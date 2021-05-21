@@ -268,7 +268,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                 createExecutor(); // 接收端的线程池
             }
 
-            initializeConnectionLatch(); // 创建 LimitLatch，限制最大连接数，超限制时后续请求进行排队
+            initializeConnectionLatch(); // 创建 LimitLatch，限制最大连接数，超限制则后续请求进行排队
 
             // Start poller thread
             poller = new Poller();

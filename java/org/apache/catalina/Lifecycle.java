@@ -67,8 +67,8 @@ package org.apache.catalina;
  * STOPPED has no effect.
  *
  * Calling stop() while a component is in state NEW transitions the component
- * to STOPPED. This is typically encountered when a component fails to start and
- * does not start all its sub-components. When the component is stopped, it will
+ * to STOPPED. This is typically encountered when a component fails to start and  // 这通常发生在组件启动失败，无法启动所有的子组件的时候。
+ * does not start all its sub-components. When the component is stopped, it will  //
  * try to stop all sub-components - even those it didn't start.
  *
  * Attempting any other transition will throw {@link LifecycleException}.

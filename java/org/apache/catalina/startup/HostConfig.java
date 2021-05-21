@@ -418,10 +418,10 @@ public class HostConfig implements LifecycleListener {
      */
     protected void deployApps() {
 
-        File appBase = host.getAppBaseFile();
-        File configBase = host.getConfigBaseFile();
-        String[] filteredAppPaths = filterAppPaths(appBase.list());
-        // Deploy XML descriptors from configBase // 描述符部署，在server.xml中配置context标签配置项目地址
+        File appBase = host.getAppBaseFile(); // eg. D:\work\github\tomcat\webapps
+        File configBase = host.getConfigBaseFile(); // eg. D:\work\github\tomcat\conf\Catalina\localhost
+        String[] filteredAppPaths = filterAppPaths(appBase.list()); // webapps 下所有文件名
+        // Deploy XML descriptors from configBase // 文件描述符的方式部署，读取 \conf\Catalina\localhost 目录下的 xml 文件
         deployDescriptors(configBase, configBase.list());
         // Deploy WARs // war包部署
         deployWARs(appBase, filteredAppPaths);
@@ -1029,7 +1029,7 @@ public class HostConfig implements LifecycleListener {
         ExecutorService es = host.getStartStopExecutor();
         List<Future<?>> results = new ArrayList<>();
 
-        for (String file : files) {
+        for (String file : files) { // webapps 目录下的所有文件
 
             if (file.equalsIgnoreCase("META-INF"))
                 continue;
@@ -1039,6 +1039,8 @@ public class HostConfig implements LifecycleListener {
             if (dir.isDirectory()) {
                 ContextName cn = new ContextName(file, false);
 
+                // 由于是先启动 Host 的子容器，再部署 webapps 下的应用
+                // 因此，对于配置在 server.xml 且存在于 webapps 目录下的应用，不会重复部署
                 if (isServiced(cn.getName()) || deploymentExists(cn.getName()))
                     continue;
 
@@ -1573,7 +1575,7 @@ public class HostConfig implements LifecycleListener {
         }
 
         if (host.getDeployOnStartup())
-            deployApps();
+            deployApps(); // 部署应用
 
     }
 
